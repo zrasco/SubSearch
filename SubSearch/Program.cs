@@ -1,6 +1,8 @@
-﻿using Serilog;
+﻿using OSDBnet;
+using Serilog;
 using Serilog.Configuration;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,15 +11,16 @@ namespace SubSearch
 {
     class Program
     {
-        static void Main(string[] args)
-        {
-            ILoggerSettings settings;
+        const string DEFAULT_LANGUAGE = "English";
 
-            Log.Logger = new LoggerConfiguration()
+        static ILogger _logger = new LoggerConfiguration()
                             .MinimumLevel.Debug()
                             .WriteTo.RollingFile("SubSearchLog.txt", retainedFileCountLimit: 30)
                             .WriteTo.Console()
                             .CreateLogger();
+
+        static void Main(string[] args)
+        {
             try
             {
                 if (args.Count() < 1)
@@ -30,7 +33,7 @@ namespace SubSearch
 
                     if (File.Exists(outputFile))
                     {
-                        Console.WriteLine($"Skipping file {videoFile}, subtitle already exists...");
+                        _logger.Information($"Skipping file {videoFile}, subtitle already exists...");
                     }
                     else
                     {
@@ -51,13 +54,13 @@ namespace SubSearch
                         }
 
                         if (!string.IsNullOrEmpty(successfulProvider))
-                            Console.WriteLine($"Succesfully retrieved subtitle file {outputFile} from {successfulProvider}");
+                            _logger.Information($"Succesfully retrieved subtitle file {outputFile} from {successfulProvider}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in Main(): {ex.Message}");
+                _logger.Error($"Exception in Main(): {ex.Message}");
             }
 
             Console.WriteLine("Press any key to continue...");
@@ -70,36 +73,83 @@ namespace SubSearch
             Console.WriteLine($"Usage: {Environment.CommandLine} [TV episode]");
         }
 
-        async static Task<bool> SearchAddic7ed(string name, int season, int episode, string outputFile, string language = "English")
+        async static Task<bool> SearchOpenSubtitles(string fileHash, long fileSize, string languages = DEFAULT_LANGUAGE)
+        {
+            bool retval = false;
+
+            var client = Osdb.Create("SubSearch");
+            List<Subtitle> targetSubList = (await client.SearchSubtitlesFromHash(languages, fileHash, fileSize)).ToList();
+
+            return retval;
+        }
+
+        async static Task<bool> SearchAddic7ed(string name, int season, int episode, string outputFile, string language = DEFAULT_LANGUAGE)
         {
             bool retval = false;
 
             try
             {
                 var api = new Addic7ed.Addic7edApi.Api();
+                // Get the list of all TV shows
                 var tvShows = await api.GetShows();
 
-                var myShow = tvShows.FirstOrDefault(x => x.Name.Contains(name));
-
-                var eps = await api.GetSeasonSubtitles(myShow.Id, season);
-                var myEp = eps.Where(x => x.Number == episode).FirstOrDefault();
-
-                var found = myEp.Subtitles.FirstOrDefault(x => x.Language == language);
-
-                if (found != null)
+                if (!tvShows.Any())
                 {
-                    var downloadedSub = await api.DownloadSubtitle(myShow.Id, found.DownloadUri);
-
-                    SaveFileStream(outputFile, downloadedSub.Stream);
-
-                    retval = true;
+                    _logger.Information("SearchAddic7ed(): No TV shows available.");
                 }
+                else
+                {
+                    // Find our target show
+                    var myShow = tvShows.FirstOrDefault(x => x.Name.Contains(name));
 
-                retval = true;
+                    if (myShow == null)
+                    {
+                        _logger.Information($"SearchAddic7ed(): TV show specified ({name}) was not in the list of available shows.");
+                    }
+                    else
+                    {
+                        // Find all subtitles for each episode in the target season
+                        var eps = await api.GetSeasonSubtitles(myShow.Id, season);
+
+                        if (!eps.Any())
+                        {
+                            _logger.Information($"SearchAddic7ed(): No episodes for season ({season}) were available.");
+                        }
+                        else
+                        {
+                            // Find our target episode
+                            var myEp = eps.Where(x => x.Number == episode).FirstOrDefault();
+
+                            if (myEp == null)
+                            {
+                                _logger.Information($"SearchAddic7ed(): No subtitles for season ({season}) episode ({episode}) were available.");
+                            }
+                            else
+                            {
+                                // Find our target subtitle. Grab the first english one by default
+                                var found = myEp.Subtitles.FirstOrDefault(x => x.Language == language);
+
+                                if (found == null)
+                                {
+                                    _logger.Information($"SearchAddic7ed(): Subtitles for season ({season}) episode ({episode}) were available, not in the language specified ({language})");
+                                }
+                                else
+                                {
+                                    var downloadedSub = await api.DownloadSubtitle(myShow.Id, found.DownloadUri);
+
+                                    SaveFileStream(outputFile, downloadedSub.Stream);
+
+                                    _logger.Information($"SearchAddic7ed(): Successfully retrieved subtitles for season ({season}) episode ({episode}) in {language}");
+                                    retval = true;
+                                }
+                            }
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in SearchAddic7ed(): {ex.Message}");
+                _logger.Error($"Exception in SearchAddic7ed(): {ex.Message}");
                 throw;
             }
 
@@ -118,7 +168,7 @@ namespace SubSearch
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in SaveFileStream(): {ex.Message}");
+                _logger.Error($"Exception in SaveFileStream(): {ex.Message}");
                 throw;
             }
         }
