@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.705
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29123.88
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubSearch", "SubSearch\SubSearch.csproj", "{263928C8-B723-47C7-96C7-2CE9ED1EE076}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SubSearch", "SubSearch\SubSearch.csproj", "{263928C8-B723-47C7-96C7-2CE9ED1EE076}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Addic7ed.Addic7edApi", "Addic7ed.Addic7edApi\Addic7ed.Addic7edApi.csproj", "{7B83CC21-A20B-468A-9641-20F8F95707D1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubSearchUI", "SubSearchUI\SubSearchUI.csproj", "{BC5ED21E-D110-43DA-89A0-35D59D43572F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{7B83CC21-A20B-468A-9641-20F8F95707D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B83CC21-A20B-468A-9641-20F8F95707D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B83CC21-A20B-468A-9641-20F8F95707D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC5ED21E-D110-43DA-89A0-35D59D43572F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC5ED21E-D110-43DA-89A0-35D59D43572F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC5ED21E-D110-43DA-89A0-35D59D43572F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC5ED21E-D110-43DA-89A0-35D59D43572F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

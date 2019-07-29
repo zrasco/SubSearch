@@ -3,6 +3,7 @@ using Serilog;
 using Serilog.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,8 +12,8 @@ namespace SubSearch
 {
     class Program
     {
-        const string DEFAULT_LANGUAGE = "English";
-
+        const string DEFAULT_LANGUAGE = "English (United States)";
+        private static CultureInfo[] _cultureInfos = CultureInfo.GetCultures(CultureTypes.AllCultures & ~CultureTypes.NeutralCultures);
         static ILogger _logger = new LoggerConfiguration()
                             .MinimumLevel.Debug()
                             .WriteTo.RollingFile("SubSearchLog.txt", retainedFileCountLimit: 30)
@@ -29,9 +30,14 @@ namespace SubSearch
                 {
                     string successfulProvider = null;
                     string videoFile = args[0];
-                    string outputFile = Path.ChangeExtension(videoFile, ".srt");
+                    string defaultOutputFile = Path.GetDirectoryName(videoFile) + Path.GetFileNameWithoutExtension(videoFile) + ".srt";
+                    string langOutputFile = Path.GetDirectoryName(videoFile) + Path.GetFileNameWithoutExtension(videoFile) + "." + _cultureInfos.Where(x => x.DisplayName == DEFAULT_LANGUAGE).FirstOrDefault().TwoLetterISOLanguageName + ".srt";
+                    string langCountryOutputFile = Path.GetDirectoryName(videoFile) + Path.GetFileNameWithoutExtension(videoFile) + "." + _cultureInfos.Where(x => x.DisplayName == DEFAULT_LANGUAGE).FirstOrDefault().Name + ".srt";
 
-                    if (File.Exists(outputFile))
+
+                    // Attempt to find subtitles with correct country info
+
+                    if (File.Exists(defaultOutputFile) || File.Exists(langOutputFile) || File.Exists(langCountryOutputFile) )
                     {
                         _logger.Information($"Skipping file {videoFile}, subtitle already exists...");
                     }
@@ -48,13 +54,13 @@ namespace SubSearch
                         int season = Int32.Parse(seasonEpStr[0].Substring(1, seasonEpStr[0].Length - 1));
                         int episodeNbr = Int32.Parse(seasonEpStr[1]);
 
-                        if (SearchAddic7ed(show, season, episodeNbr, outputFile).Result)
+                        if (SearchAddic7ed(show, season, episodeNbr, langCountryOutputFile).Result)
                         {
                             successfulProvider = "Addic7ed";
                         }
 
                         if (!string.IsNullOrEmpty(successfulProvider))
-                            _logger.Information($"Succesfully retrieved subtitle file {outputFile} from {successfulProvider}");
+                            _logger.Information($"Succesfully retrieved subtitle file {langCountryOutputFile} from {successfulProvider}");
                     }
                 }
             }
