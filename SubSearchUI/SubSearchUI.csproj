@@ -9,8 +9,12 @@
   <ItemGroup>
     <None Remove="appsettings.json" />
     <None Remove="Images\diskdrive.png" />
+    <None Remove="Images\error.png" />
     <None Remove="Images\folder.png" />
+    <None Remove="Images\info.png" />
+    <None Remove="Images\ok.png" />
     <None Remove="Images\video.png" />
+    <None Remove="Images\warning.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -33,8 +37,12 @@
 
   <ItemGroup>
     <Resource Include="Images\diskdrive.png" />
+    <Resource Include="Images\error.png" />
     <Resource Include="Images\folder.png" />
+    <Resource Include="Images\info.png" />
+    <Resource Include="Images\ok.png" />
     <Resource Include="Images\video.png" />
+    <Resource Include="Images\warning.png" />
   </ItemGroup>
 
 </Project>

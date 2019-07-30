@@ -43,6 +43,12 @@ namespace SubSearchUI
             DataContext = vm;
 
             RefreshTV();
+
+            AddLogEntry("Sample OK entry", ListViewItemTag.ImageType.OK);
+            AddLogEntry("Sample info entry", ListViewItemTag.ImageType.Info);
+            AddLogEntry("Sample warning entry", ListViewItemTag.ImageType.Warning);
+            AddLogEntry("Sample error entry", ListViewItemTag.ImageType.Error);
+
         }
 
         private void MnuExit_Click(object sender, RoutedEventArgs e)
@@ -55,12 +61,23 @@ namespace SubSearchUI
             // Create new window with DI
             var pWindow = _services.GetRequiredService<PreferencesWindow>();
 
-            pWindow.Show();
+            pWindow.Owner = this;
+            pWindow.ShowDialog();
         }
 
         private void TvFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
 
+        }
+
+        private void AddLogEntry(string message, ListViewItemTag.ImageType image)
+        {
+            ListViewItem item = new ListViewItem();
+            item.Content = message;
+            item.Tag = new ListViewItemTag(message, image);
+            item.FontWeight = FontWeights.Normal;
+
+            lvLog.Items.Add(item);
         }
 
         private void RefreshTV()

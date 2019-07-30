@@ -44,13 +44,23 @@ namespace SubSearchUI.Views
             if (dlg.ShowDialog(this) == CommonFileDialogResult.Ok)
             {
                 _vm.RootDirectory = dlg.FileName;
-
-                _appSettingsOpt.Update(o =>
-                {
-                    o.RootDirectory = _vm.RootDirectory;
-                });
             }
                 
+        }
+
+        private void BtnOK_Click(object sender, RoutedEventArgs e)
+        {
+            _appSettingsOpt.Update(o =>
+            {
+                o.RootDirectory = _vm.RootDirectory;
+            });
+
+            Close();
+        }
+
+        private void BtnCancel_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
         }
     }
 }

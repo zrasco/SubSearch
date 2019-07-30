@@ -1,6 +1,4 @@
-﻿/// Source: https://www.codeproject.com/Articles/21248/A-Simple-WPF-Explorer-Tree
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -9,16 +7,16 @@ using System.Windows.Media.Imaging;
 
 namespace SubSearchUI.Models.Converters
 {
-    #region HeaderToImageConverter
+    #region LVTagToImageConverter
 
-    [ValueConversion(typeof(TreeViewItemTag), typeof(bool))]
-    public class TagToImageConverter : IValueConverter
+    [ValueConversion(typeof(ListViewItemTag), typeof(bool))]
+    public class LVTagToImageConverter : IValueConverter
     {
-        public static TagToImageConverter Instance = new TagToImageConverter();
+        public static LVTagToImageConverter Instance = new LVTagToImageConverter();
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            TreeViewItemTag tag = (value as TreeViewItemTag);
+            ListViewItemTag tag = (value as ListViewItemTag);
 
             Uri uri = new Uri(tag.ImageUri);
             BitmapImage source = new BitmapImage(uri);
@@ -32,5 +30,4 @@ namespace SubSearchUI.Models.Converters
     }
 
     #endregion // TagToImageConverter
-
 }
