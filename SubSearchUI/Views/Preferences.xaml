@@ -1,0 +1,23 @@
+﻿<Window x:Class="SubSearchUI.Views.PreferencesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SubSearchUI.Views"
+        mc:Ignorable="d"
+        Title="Preferences" Height="150" Width="400">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Center" Orientation="Horizontal">
+            <Button Margin="10, 10, 2, 10" Padding="3">OK</Button>
+            <Button Margin="2, 10, 10, 10" Padding="3">Cancel</Button>
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Top" HorizontalAlignment="Center" Orientation="Vertical">
+            <Label Content="Root directory:"/>
+            <StackPanel Orientation="Horizontal">
+                <TextBox Text="{Binding Path=RootDirectory, Mode=TwoWay}" Width="150"/>
+                <Button Margin="1, 1, 2, 1" Padding="3" Name="btnBrowse" Click="BtnBrowse_Click">Browse...</Button>
+            </StackPanel>
+            
+        </StackPanel>
+    </DockPanel>
+</Window>
