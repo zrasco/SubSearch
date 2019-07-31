@@ -1,12 +1,14 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SubSearchUI.Models;
+using SubSearchUI.Services.Abstract;
 using SubSearchUI.ViewModels;
 using SubSearchUI.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -23,6 +25,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using Path = System.IO.Path;
 
 namespace SubSearchUI
 {
@@ -31,11 +34,11 @@ namespace SubSearchUI
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly AppSettings _appSettings;
+        private AppSettings _appSettings;
         private readonly MainWindowViewModel _vm;
         private readonly IServiceProvider _services;
 
-        public MainWindow(IServiceProvider services, IOptions<AppSettings> settings, MainWindowViewModel vm)
+        public MainWindow(IServiceProvider services, IWritableOptions<AppSettings> settings, MainWindowViewModel vm)
         {
             InitializeComponent();
 
@@ -53,7 +56,6 @@ namespace SubSearchUI
             AddLogEntry("Sample info entry", ImageType.Info);
             AddLogEntry("Sample warning entry", ImageType.Warning);
             AddLogEntry("Sample error entry", ImageType.Error);
-
         }
 
         private static TreeViewItem FindTviFromObjectRecursive(ItemsControl ic, object o)
@@ -90,7 +92,11 @@ namespace SubSearchUI
             var pWindow = _services.GetRequiredService<PreferencesWindow>();
 
             pWindow.Owner = this;
-            pWindow.ShowDialog();
+
+            var result = pWindow.ShowDialog();
+
+            if (result == true)
+                ReloadFileList((tvFolders.SelectedValue as TVDirectoryItem).FullPath);
         }
 
         private void TvFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
@@ -112,7 +118,7 @@ namespace SubSearchUI
             bool foundVideos = false;
             var videoExtensions = _appSettings.VideoExtensions.Split(',').Select(p => p.Trim().ToUpper()).ToList();
 
-            _vm.FileList = new ObservableCollection<ItemWithImage>();
+            _vm.FileList = new ObservableCollection<VideoFileItem>();
 
             foreach (string f in Directory.GetFiles(fullPath))
             {
@@ -120,12 +126,16 @@ namespace SubSearchUI
                 if (videoExtensions.Contains(System.IO.Path.GetExtension(f).ToUpper()))
                 {
                     foundVideos = true;
-                    var fileItem = new ItemWithImage()
+                    var fileItem = new VideoFileItem()
                     {
                         ImageSource = "/Images/video.png",
-                        Text = f,
-                        TextColor = Brushes.Red
+                        FullPath = f,
+                        Text = Path.GetFileName(f)
                     };
+
+                    // Determine whether this video has subtitles
+                    _appSettings = _services.GetRequiredService<IWritableOptions<AppSettings>>().Value;
+                    fileItem.GenerateSubtitleInfo(_appSettings.DefaultLanguage);
 
                     _vm.FileList.Add(fileItem);
                 }
@@ -133,7 +143,7 @@ namespace SubSearchUI
 
             if (!foundVideos)
             {
-                var notFoundItem = new ItemWithImage()
+                var notFoundItem = new VideoFileItem()
                 {
                     Text = $"(No videos were found in folder '{new DirectoryInfo(fullPath).Name}')"
                 };
@@ -141,6 +151,7 @@ namespace SubSearchUI
                 _vm.FileList.Add(notFoundItem);
             }
         }
+
         public enum ImageType { OK, Info, Warning, Error };
 
         public void AddLogEntry(string message, ImageType image)
@@ -207,17 +218,38 @@ namespace SubSearchUI
             rootItem.SubItems.Add(TVDirectoryItem.GetDummyItem());
 
             _vm.DirectoryList.Add(rootItem);
-
-            /*
-
-            _vm.DirectoryList.Add(rootItem);
-            */
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             var tvi = FindTviFromObjectRecursive(tvFolders, _vm.DirectoryList[0]);
             if (tvi != null) tvi.IsSelected = true;
+        }
+
+        private void LvFiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            
+            //var menu = FindResource("videoContextMenu") as ContextMenu;
+
+            //if (menu != null && menu.IsOpen)
+            //    menu.Visibility = Visibility.Collapsed;
+
+            //if (menu != null && !menu.IsOpen)
+            //{
+                //_vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuItems));
+                //_vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuVisible));
+            //}
+        }
+
+        private void VideoFileContextMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            // Refresh the context menu items/visibility before opening
+            _vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuItems));
+            _vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuVisible));
+
+            // Close the context menu if not visible
+            if (_vm.SelectedVideoMenuVisible != Visibility.Visible)
+                (sender as ContextMenu).IsOpen = false;
         }
     }
 }

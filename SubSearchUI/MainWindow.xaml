@@ -10,6 +10,24 @@
         Loaded="Window_Loaded">
     <Window.Resources>
         <BitmapImage x:Key="NullImage" UriSource="/Images/null.png"/>
+        <Image x:Shared="false" x:Key="contextMenuIconImage" Height="16" Width="16" Source="{Binding Icon}"/>
+        <Image x:Shared="false" x:Key="preferencesMenuIconImage" Height="16" Width="16" Source="{Binding Source='/Images/preferences.png'}"/>
+        <Image x:Shared="false" x:Key="exitMenuIconImage" Height="16" Width="16" Source="{Binding Source='/Images/error.png'}"/>
+        <ContextMenu x:Key="videoContextMenu"
+                     x:Name="videoFileContextMenu"
+                     Opened="VideoFileContextMenu_Opened"
+                     DataContext="{Binding Path=PlacementTarget.Tag.DataContext, RelativeSource={RelativeSource Self}}"
+                     ItemsSource="{Binding Path=SelectedVideoMenuItems}"
+                     Visibility="{Binding Path=SelectedVideoMenuVisible}">
+            <ContextMenu.ItemContainerStyle>
+                <Style TargetType="{x:Type MenuItem}">
+                    <Setter Property="Icon" Value="{StaticResource contextMenuIconImage}"/>
+                    <Setter Property="Header" Value="{Binding Displayname}"/>
+                    <Setter Property="Command" Value="{Binding Command}"/>
+                    <Setter Property="CommandParameter" Value="{Binding CommandParameter}"/>
+                </Style>
+            </ContextMenu.ItemContainerStyle>
+        </ContextMenu>
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -21,9 +39,9 @@
         </Grid.RowDefinitions>
         <Menu Grid.Row="0">
             <MenuItem Header="_File">
-                <MenuItem Header="_Preferences" Name="mnuPreferences" Click="MnuPreferences_Click" />
+                <MenuItem Header="_Preferences" Name="mnuPreferences" Click="MnuPreferences_Click" Icon="{StaticResource preferencesMenuIconImage}" />
                 <Separator />
-                <MenuItem Header="_Exit" Name="mnuExit" Click="MnuExit_Click" />
+                <MenuItem Header="_Exit" Name="mnuExit" Click="MnuExit_Click" Icon="{StaticResource exitMenuIconImage}" />
             </MenuItem>
         </Menu>
         <Label Grid.Row="1" Content="{Binding Path=TestValue}"/>
@@ -34,7 +52,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             
-            <TreeView   x:Name="tvFolders"
+            <TreeView x:Name="tvFolders"
                 Grid.Column="0"
                 SelectedItemChanged="TvFolders_SelectedItemChanged"
                 Width="Auto"
@@ -46,7 +64,6 @@
                     <Style TargetType="{x:Type TreeViewItem}">
                         <Setter Property="IsExpanded" Value="{Binding IsNodeExpanded, Mode=TwoWay}"/>
                     </Style>
-                    
                 </TreeView.Resources>
                 <TreeView.ItemTemplate>
                     <HierarchicalDataTemplate ItemsSource="{Binding SubItems}">
@@ -56,20 +73,28 @@
                         </StackPanel>
                     </HierarchicalDataTemplate>
                 </TreeView.ItemTemplate>
-            </TreeView>
-            
+            </TreeView>            
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/>
             <ListView x:Name="lvFiles"
+                      SelectionChanged="LvFiles_SelectionChanged"
                       Grid.Column="2"
                       Width="Auto"
-                      ItemsSource="{Binding FileList}">
+                      ItemsSource="{Binding FileList}"
+                      SelectionMode="Extended">
+                <ListView.Resources>
+                    <Style TargetType="{x:Type ListViewItem}">
+                        <Setter Property="IsSelected" Value="{Binding IsSelected}"/>
+                        <Setter Property="ContextMenu" Value="{StaticResource videoContextMenu}"/>
+                        <Setter Property="Tag" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}}"/>
+                    </Style>
+                </ListView.Resources>
                 <ListView.ItemTemplate>
-                    <HierarchicalDataTemplate>
+                    <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <Image Source="{Binding ImageSource, TargetNullValue={StaticResource NullImage}}" Stretch="Uniform" Height="20" Width="20"/>
-                            <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />                     
+                            <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />
                         </StackPanel>
-                    </HierarchicalDataTemplate>
+                    </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
         </Grid>
@@ -83,12 +108,12 @@
                       BorderBrush="#FFFFFFFF"
                     ItemsSource="{Binding LogItems}">
             <ListView.ItemTemplate>
-                <HierarchicalDataTemplate>
+                <DataTemplate>
                     <StackPanel Orientation="Horizontal">
                         <Image Source="{Binding ImageSource, TargetNullValue={StaticResource NullImage}}" Stretch="Uniform" Height="20" Width="20"/>
                         <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />
                     </StackPanel>
-                </HierarchicalDataTemplate>
+                </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
     </Grid>

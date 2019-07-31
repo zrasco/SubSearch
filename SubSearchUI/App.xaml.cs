@@ -55,7 +55,7 @@ namespace SubSearchUI
             services.AddTransient(typeof(PreferencesWindow));
 
             // Configuration & writable options
-            services.AddSingleton(_config);
+            services.AddSingleton(x => _config);
             services.Configure<AppSettings>(_config.GetSection(nameof(AppSettings)));
             services.ConfigureWritable<AppSettings>(_config.GetSection(nameof(AppSettings)));
         }

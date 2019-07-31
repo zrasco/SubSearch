@@ -62,11 +62,14 @@ namespace SubSearchUI.Views
                 o.DefaultLanguage = _vm.SelectedLanguage.DisplayName;
             });
 
+            DialogResult = true;
+
             Close();
         }
 
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
         {
+            DialogResult = false;
             Close();
         }
 
