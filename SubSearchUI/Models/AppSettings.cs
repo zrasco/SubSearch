@@ -7,9 +7,11 @@ namespace SubSearchUI
     public class AppSettings
     {
         public string RootDirectory { get; set; }
+        public string DefaultLanguage { get; set; }
         public string VideoExtensions { get; set; }
         public string StringSetting { get; set; }
         public int IntegerSetting { get; set; }
         public bool BooleanSetting { get; set; }
+        
     }
 }

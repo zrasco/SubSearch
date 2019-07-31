@@ -5,8 +5,12 @@ using SubSearchUI.ViewModels;
 using SubSearchUI.Views;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -18,6 +22,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace SubSearchUI
 {
@@ -26,8 +31,6 @@ namespace SubSearchUI
     /// </summary>
     public partial class MainWindow : Window
     {
-        private object dummyNode = null;
-
         private readonly AppSettings _appSettings;
         private readonly MainWindowViewModel _vm;
         private readonly IServiceProvider _services;
@@ -36,19 +39,44 @@ namespace SubSearchUI
         {
             InitializeComponent();
 
+            Application.Current.DispatcherUnhandledException += new System.Windows.Threading.DispatcherUnhandledExceptionEventHandler(Current_DispatcherUnhandledException);
+
             _appSettings = settings.Value;
             _vm = vm;
             _services = services;
 
             DataContext = vm;
 
-            RefreshTV();
+            RefreshTVFromPath(_appSettings.RootDirectory);
 
-            AddLogEntry("Sample OK entry", ListViewItemTag.ImageType.OK);
-            AddLogEntry("Sample info entry", ListViewItemTag.ImageType.Info);
-            AddLogEntry("Sample warning entry", ListViewItemTag.ImageType.Warning);
-            AddLogEntry("Sample error entry", ListViewItemTag.ImageType.Error);
+            AddLogEntry("Sample OK entry", ImageType.OK);
+            AddLogEntry("Sample info entry", ImageType.Info);
+            AddLogEntry("Sample warning entry", ImageType.Warning);
+            AddLogEntry("Sample error entry", ImageType.Error);
 
+        }
+
+        private static TreeViewItem FindTviFromObjectRecursive(ItemsControl ic, object o)
+        {
+            //Search for the object model in first level children (recursively)
+            TreeViewItem tvi = ic.ItemContainerGenerator.ContainerFromItem(o) as TreeViewItem;
+            if (tvi != null) return tvi;
+            //Loop through user object models
+            foreach (object i in ic.Items)
+            {
+                //Get the TreeViewItem associated with the iterated object model
+                TreeViewItem tvi2 = ic.ItemContainerGenerator.ContainerFromItem(i) as TreeViewItem;
+                tvi = FindTviFromObjectRecursive(tvi2, o);
+                if (tvi != null) return tvi;
+            }
+            return null;
+        }
+
+        private void Current_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            this.AddLogEntry(e.Exception.Message, ImageType.Error);
+
+            e.Handled = true;
         }
 
         private void MnuExit_Click(object sender, RoutedEventArgs e)
@@ -67,63 +95,129 @@ namespace SubSearchUI
 
         private void TvFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-
+            try
+            {
+                TVDirectoryItem tvdi = (e.OriginalSource as TreeView).SelectedItem as TVDirectoryItem;
+                ReloadFileList(tvdi.FullPath);
+                
+            }
+            catch (Exception ex)
+            {
+                AddLogEntry(ex.Message, ImageType.Error);
+            }
         }
 
-        private void AddLogEntry(string message, ListViewItemTag.ImageType image)
+        private void ReloadFileList(string fullPath)
         {
+            bool foundVideos = false;
+            var videoExtensions = _appSettings.VideoExtensions.Split(',').Select(p => p.Trim().ToUpper()).ToList();
+
+            _vm.FileList = new ObservableCollection<ItemWithImage>();
+
+            foreach (string f in Directory.GetFiles(fullPath))
+            {
+                // Only display valid video files
+                if (videoExtensions.Contains(System.IO.Path.GetExtension(f).ToUpper()))
+                {
+                    foundVideos = true;
+                    var fileItem = new ItemWithImage()
+                    {
+                        ImageSource = "/Images/video.png",
+                        Text = f,
+                        TextColor = Brushes.Red
+                    };
+
+                    _vm.FileList.Add(fileItem);
+                }
+            }
+
+            if (!foundVideos)
+            {
+                var notFoundItem = new ItemWithImage()
+                {
+                    Text = $"(No videos were found in folder '{new DirectoryInfo(fullPath).Name}')"
+                };
+
+                _vm.FileList.Add(notFoundItem);
+            }
+        }
+        public enum ImageType { OK, Info, Warning, Error };
+
+        public void AddLogEntry(string message, ImageType image)
+        {
+            string imageSource = "/Images/";
+
+            switch (image)
+            {
+                case ImageType.Error:
+                    imageSource += "error.png";
+                    break;
+                case ImageType.Info:
+                    imageSource += "info.png";
+                    break;
+                case ImageType.Warning:
+                    imageSource += "warning.png";
+                    break;
+                case ImageType.OK:
+                    imageSource += "ok.png";
+                    break;
+                default:
+                    imageSource = null;
+                    break;
+            }
+            /*
             ListViewItem item = new ListViewItem();
             item.Content = message;
             item.Tag = new ListViewItemTag(message, image);
             item.FontWeight = FontWeights.Normal;
 
             lvLog.Items.Add(item);
+
+            */
+            var logEntry = new ItemWithImage()
+            {
+                ImageSource = imageSource,
+                Text = message
+            };
+
+            _vm.LogItems.Add(logEntry);
+            lvLog.ScrollIntoView(logEntry);
         }
 
-        private void RefreshTV()
+        private void RefreshTVFromPath(string rootDirectory)
         {
-            foreach (string s in Directory.GetLogicalDrives())
+            string rootDirName;
+            _vm.DirectoryList = new ObservableCollection<TVDirectoryItem>();
+
+            // TODO: Add support for multiple root directories
+
+            if (rootDirectory.Length == 3 && rootDirectory.Contains(@":\"))
+                rootDirName = rootDirectory;
+            else
+                rootDirName = System.IO.Path.GetDirectoryName(rootDirectory);
+
+            var rootItem = new TVDirectoryItem()
             {
-                TreeViewItem item = new TreeViewItem();
-                item.Header = s;
-                item.Tag = new TreeViewItemTag(s, TreeViewItemTag.ImageType.DiskDrive);
-                item.FontWeight = FontWeights.Normal;
-                item.Items.Add(dummyNode);
-                item.Expanded += new RoutedEventHandler(folder_Expanded);
-                tvFolders.Items.Add(item);
-            }
+                FullPath = rootDirectory,
+                ImageSource = "/Images/folder.png",
+                Text = rootDirName,
+                SubItems = new ObservableCollection<TVDirectoryItem>()
+            };
+
+            rootItem.SubItems.Add(TVDirectoryItem.GetDummyItem());
+
+            _vm.DirectoryList.Add(rootItem);
+
+            /*
+
+            _vm.DirectoryList.Add(rootItem);
+            */
         }
 
-        private void folder_Expanded(object sender, RoutedEventArgs e)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            TreeViewItem item = (TreeViewItem)sender;
-            if (item.Items.Count == 1 && item.Items[0] == dummyNode)
-            {
-                item.Items.Clear();
-                try
-                {
-                    foreach (string s in Directory.GetDirectories((item.Tag as TreeViewItemTag).FullPath))
-                    {
-                        TreeViewItem subitem = new TreeViewItem();
-                        subitem.Header = s.Substring(s.LastIndexOf("\\") + 1);
-                        subitem.Tag = new TreeViewItemTag(s, TreeViewItemTag.ImageType.Folder);
-                        subitem.FontWeight = FontWeights.Normal;
-                        subitem.Items.Add(dummyNode);
-                        subitem.Expanded += new RoutedEventHandler(folder_Expanded);
-                        item.Items.Add(subitem);
-                    }
-
-                    foreach (string s in Directory.GetFiles((item.Tag as TreeViewItemTag).FullPath))
-                    {
-                        TreeViewItem subitem = new TreeViewItem();
-                        subitem.Header = s.Substring(s.LastIndexOf("\\") + 1);
-                        subitem.Tag = new TreeViewItemTag(s, TreeViewItemTag.ImageType.File);
-                        subitem.FontWeight = FontWeights.Normal;
-                        item.Items.Add(subitem);
-                    }
-                }
-                catch (Exception) { }
-            }
+            var tvi = FindTviFromObjectRecursive(tvFolders, _vm.DirectoryList[0]);
+            if (tvi != null) tvi.IsSelected = true;
         }
     }
 }

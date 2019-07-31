@@ -5,6 +5,8 @@ using SubSearchUI.Services.Abstract;
 using SubSearchUI.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,6 +37,10 @@ namespace SubSearchUI.Views
             // Settings
             _vm.RootDirectory = _appSettingsOpt.Value.RootDirectory;
 
+            // Language list
+            _vm.LanguageList = (App.Current.Properties["CultureInfo"] as CultureInfo[]).OrderBy(x => x.DisplayName).ToList();
+
+            var defaultLang = (App.Current.Properties["CultureInfo"] as CultureInfo[]).Where(x => x.DisplayName == _appSettingsOpt.Value.DefaultLanguage);
             DataContext = vm;
         }
         private void BtnBrowse_Click(object sender, RoutedEventArgs e)
@@ -53,6 +59,7 @@ namespace SubSearchUI.Views
             _appSettingsOpt.Update(o =>
             {
                 o.RootDirectory = _vm.RootDirectory;
+                o.DefaultLanguage = _vm.SelectedLanguage.DisplayName;
             });
 
             Close();
@@ -61,6 +68,11 @@ namespace SubSearchUI.Views
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            _vm.SelectedLanguage = _vm.LanguageList.Where(x => x.DisplayName == _appSettingsOpt.Value.DefaultLanguage).FirstOrDefault();
         }
     }
 }

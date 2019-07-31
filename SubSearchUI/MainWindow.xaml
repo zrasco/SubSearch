@@ -4,10 +4,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SubSearchUI"
-        xmlns:converters="clr-namespace:SubSearchUI.Models.Converters"
         mc:Ignorable="d"
         Title="Subsearcher UI" Height="450" Width="800"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded">
+    <Window.Resources>
+        <BitmapImage x:Key="NullImage" UriSource="/Images/null.png"/>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -38,36 +41,36 @@
                 Height="Auto"
                 Background="#FFFFFFFF"
                 BorderBrush="#FFFFFFFF"
-                Foreground="#FFFFFFFF">
+                ItemsSource="{Binding DirectoryList}">
                 <TreeView.Resources>
                     <Style TargetType="{x:Type TreeViewItem}">
-                        <Setter Property="HeaderTemplate">
-                            <Setter.Value>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image Name="img"  Width="20" Height="20" Stretch="Fill" 
-                                    Source="{Binding 
-                                    RelativeSource={RelativeSource 
-                                    Mode=FindAncestor, 
-                                    AncestorType={x:Type TreeViewItem}}, 
-                                    Path=Tag, 
-                                    Converter={x:Static converters:TVTagToImageConverter.Instance}}"       
-                                    />
-                                        <TextBlock Text="{Binding}" Margin="5,0" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </Setter.Value>
-                        </Setter>
+                        <Setter Property="IsExpanded" Value="{Binding IsNodeExpanded, Mode=TwoWay}"/>
                     </Style>
+                    
                 </TreeView.Resources>
+                <TreeView.ItemTemplate>
+                    <HierarchicalDataTemplate ItemsSource="{Binding SubItems}">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding ImageSource, TargetNullValue={StaticResource NullImage}}" Stretch="Uniform" Height="20" Width="20"/>
+                            <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />
+                        </StackPanel>
+                    </HierarchicalDataTemplate>
+                </TreeView.ItemTemplate>
             </TreeView>
             
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/>
             <ListView x:Name="lvFiles"
                       Grid.Column="2"
-                      Width="Auto">
-                <ListViewItem>File #1</ListViewItem>
-                <ListViewItem>File #2</ListViewItem>
+                      Width="Auto"
+                      ItemsSource="{Binding FileList}">
+                <ListView.ItemTemplate>
+                    <HierarchicalDataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="{Binding ImageSource, TargetNullValue={StaticResource NullImage}}" Stretch="Uniform" Height="20" Width="20"/>
+                            <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />                     
+                        </StackPanel>
+                    </HierarchicalDataTemplate>
+                </ListView.ItemTemplate>
             </ListView>
         </Grid>
         
@@ -77,28 +80,16 @@
                       Width="Auto"
                       Height="Auto"
                       Background="#FFFFFFFF"
-                      BorderBrush="#FFFFFFFF">
-            <ListView.Resources>
-                <Style TargetType="{x:Type ListViewItem}">
-                    <Setter Property="ContentTemplate">
-                        <Setter.Value>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <Image Name="img"  Width="20" Height="20" Stretch="Fill" 
-                                        Source="{Binding 
-                                        RelativeSource={RelativeSource 
-                                        Mode=FindAncestor, 
-                                        AncestorType={x:Type ListViewItem}}, 
-                                        Path=Tag, 
-                                        Converter={x:Static converters:LVTagToImageConverter.Instance}}"       
-                                        />
-                                    <TextBlock Text="{Binding}" Margin="5,0" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </ListView.Resources>
+                      BorderBrush="#FFFFFFFF"
+                    ItemsSource="{Binding LogItems}">
+            <ListView.ItemTemplate>
+                <HierarchicalDataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="{Binding ImageSource, TargetNullValue={StaticResource NullImage}}" Stretch="Uniform" Height="20" Width="20"/>
+                        <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </ListView.ItemTemplate>
         </ListView>
     </Grid>
 </Window>
