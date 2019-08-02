@@ -1,10 +1,12 @@
 ﻿using GalaSoft.MvvmLight.Ioc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SubSearchUI.Models;
 using SubSearchUI.Services.Extensions;
 using SubSearchUI.ViewModels;
 using SubSearchUI.Views;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -46,17 +48,13 @@ namespace SubSearchUI
 
         private void ConfigureServices(IServiceCollection services)
         {
-            // Main window
-            services.AddTransient(typeof(MainWindowViewModel));
+            // Each window goes into the DI container so they can also have dependencies injected into them
             services.AddTransient(typeof(MainWindow));
-
-            // Preferences window
-            services.AddTransient(typeof(PreferencesViewModel));
             services.AddTransient(typeof(PreferencesWindow));
 
             // Configuration & writable options
             services.AddSingleton(x => _config);
-            services.Configure<AppSettings>(_config.GetSection(nameof(AppSettings)));
+            //services.Configure<AppSettings>(_config.GetSection(nameof(AppSettings)));
             services.ConfigureWritable<AppSettings>(_config.GetSection(nameof(AppSettings)));
         }
     }

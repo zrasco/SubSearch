@@ -1,6 +1,7 @@
 ﻿using GalaSoft.MvvmLight;
 using SubSearchUI.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -175,6 +176,36 @@ namespace SubSearchUI.ViewModels
         }
 
         /// <summary>
+        /// The <see cref="ItemsQueue" /> property's name.
+        /// </summary>
+        public const string ItemsQueuePropertyName = "ItemsQueue";
+
+        private ObservableCollection<QueueItem> _itemsQueue;
+
+        /// <summary>
+        /// Sets and gets the ItemsQueue property.
+        /// Changes to that property's value raise the PropertyChanged event. 
+        /// </summary>
+        public ObservableCollection<QueueItem> ItemsQueue
+        {
+            get
+            {
+                return _itemsQueue;
+            }
+
+            set
+            {
+                if (_itemsQueue == value)
+                {
+                    return;
+                }
+
+                _itemsQueue = value;
+                RaisePropertyChanged(ItemsQueuePropertyName);
+            }
+        }
+
+        /// <summary>
         /// The <see cref="DirectoryList" /> property's name.
         /// </summary>
         public const string DirectoryListPropertyName = "DirectoryList";
@@ -201,6 +232,36 @@ namespace SubSearchUI.ViewModels
 
                 _directoryList = value;
                 RaisePropertyChanged(() => DirectoryList);
+            }
+        }
+
+        /// <summary>
+        /// The <see cref="SelectedDirectory" /> property's name.
+        /// </summary>
+        public const string SelectedDirectoryPropertyName = "SelectedDirectory";
+
+        private TVDirectoryItem _selectedDirectory;
+
+        /// <summary>
+        /// Sets and gets the SelectedDirectory property.
+        /// Changes to that property's value raise the PropertyChanged event. 
+        /// </summary>
+        public TVDirectoryItem SelectedDirectory
+        {
+            get
+            {
+                return _selectedDirectory;
+            }
+
+            set
+            {
+                if (_selectedDirectory == value)
+                {
+                    return;
+                }
+
+                _selectedDirectory = value;
+                RaisePropertyChanged(SelectedDirectoryPropertyName);
             }
         }
 
@@ -264,15 +325,12 @@ namespace SubSearchUI.ViewModels
             }
         }
 
-        public string TestValue { get; set; }
-
         public MainWindowViewModel()
         {
             DirectoryList = new ObservableCollection<TVDirectoryItem>();
             FileList = new ObservableCollection<VideoFileItem>();
             LogItems = new ObservableCollection<ItemWithImage>();
-
-            TestValue = "Wheeeeeee!";
+            ItemsQueue = new ObservableCollection<QueueItem>();
         }
     }
 }

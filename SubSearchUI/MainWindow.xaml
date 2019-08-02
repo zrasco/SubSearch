@@ -32,7 +32,6 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="6*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="2*"/>
@@ -44,22 +43,21 @@
                 <MenuItem Header="_Exit" Name="mnuExit" Click="MnuExit_Click" Icon="{StaticResource exitMenuIconImage}" />
             </MenuItem>
         </Menu>
-        <Label Grid.Row="1" Content="{Binding Path=TestValue}"/>
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition MinWidth="150" Width="Auto"/>
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            
-            <TreeView x:Name="tvFolders"
-                Grid.Column="0"
-                SelectedItemChanged="TvFolders_SelectedItemChanged"
-                Width="Auto"
-                Height="Auto"
-                Background="#FFFFFFFF"
-                BorderBrush="#FFFFFFFF"
-                ItemsSource="{Binding DirectoryList}">
+
+            <TreeView   x:Name="tvFolders"
+                        Grid.Column="0"
+                        SelectedItemChanged="TvFolders_SelectedItemChanged"
+                        Width="Auto"
+                        Height="Auto"
+                        Background="#FFFFFFFF"
+                        BorderBrush="#FFFFFFFF"
+                        ItemsSource="{Binding DirectoryList, Mode=OneWay}">
                 <TreeView.Resources>
                     <Style TargetType="{x:Type TreeViewItem}">
                         <Setter Property="IsExpanded" Value="{Binding IsNodeExpanded, Mode=TwoWay}"/>
@@ -99,22 +97,47 @@
             </ListView>
         </Grid>
         
-        <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch"/>
-        <ListView x:Name="lvLog"
-                      Grid.Row="4"
+        <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"/>
+        <TabControl Grid.Row="3">
+            <TabItem Header="Log">
+                <Grid>
+                    <ListView x:Name="lvLog"
                       Width="Auto"
                       Height="Auto"
                       Background="#FFFFFFFF"
                       BorderBrush="#FFFFFFFF"
                     ItemsSource="{Binding LogItems}">
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <Image Source="{Binding ImageSource, TargetNullValue={StaticResource NullImage}}" Stretch="Uniform" Height="20" Width="20"/>
-                        <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Image Source="{Binding ImageSource, TargetNullValue={StaticResource NullImage}}" Stretch="Uniform" Height="20" Width="20"/>
+                                    <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Queue">
+                <Grid>
+                    <ListView x:Name="lvQueue" ItemsSource="{Binding Path=ItemsQueue, Mode=OneWay}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Text}" Width="200" />
+                                <GridViewColumn Header="Status" DisplayMemberBinding="{Binding Status}" Width="200" />
+                                <GridViewColumn Header="Progress" Width="200">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="True" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        
     </Grid>
 </Window>

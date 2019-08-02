@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using SubSearchUI.Models;
 using SubSearchUI.Services.Abstract;
 using SubSearchUI.ViewModels;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -27,11 +29,11 @@ namespace SubSearchUI.Views
         private readonly PreferencesViewModel _vm;
         private readonly IWritableOptions<AppSettings> _appSettingsOpt;
 
-        public PreferencesWindow(PreferencesViewModel vm, IWritableOptions<AppSettings> appSettingsOpt)
+        public PreferencesWindow(IWritableOptions<AppSettings> appSettingsOpt)
         {
             InitializeComponent();
 
-            _vm = vm;
+            _vm = new PreferencesViewModel();
             _appSettingsOpt = appSettingsOpt;
 
             // Settings
@@ -41,7 +43,7 @@ namespace SubSearchUI.Views
             _vm.LanguageList = (App.Current.Properties["CultureInfo"] as CultureInfo[]).OrderBy(x => x.DisplayName).ToList();
 
             var defaultLang = (App.Current.Properties["CultureInfo"] as CultureInfo[]).Where(x => x.DisplayName == _appSettingsOpt.Value.DefaultLanguage);
-            DataContext = vm;
+            DataContext = _vm;
         }
         private void BtnBrowse_Click(object sender, RoutedEventArgs e)
         {
@@ -76,6 +78,11 @@ namespace SubSearchUI.Views
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             _vm.SelectedLanguage = _vm.LanguageList.Where(x => x.DisplayName == _appSettingsOpt.Value.DefaultLanguage).FirstOrDefault();
+
+            foreach (var plugin in _appSettingsOpt.Value.Plugins)
+            {
+                _vm.PluginList.Add(new PluginInfo() { File = plugin.File, Name = plugin.Name });
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ using SubSearchUI.Services.Abstract;
 using SubSearchUI.ViewModels;
 using SubSearchUI.Views;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -38,17 +39,19 @@ namespace SubSearchUI
         private readonly MainWindowViewModel _vm;
         private readonly IServiceProvider _services;
 
-        public MainWindow(IServiceProvider services, IWritableOptions<AppSettings> settings, MainWindowViewModel vm)
+        public MainWindow(IServiceProvider services, IWritableOptions<AppSettings> settings)
         {
             InitializeComponent();
 
             Application.Current.DispatcherUnhandledException += new System.Windows.Threading.DispatcherUnhandledExceptionEventHandler(Current_DispatcherUnhandledException);
 
             _appSettings = settings.Value;
-            _vm = vm;
+            _vm = new MainWindowViewModel();
             _services = services;
 
-            DataContext = vm;
+            // Add test items to queue
+            _vm.ItemsQueue.Add(new QueueItem() { Text = "Test from VM copy", Status = "In Progress" });
+            DataContext = _vm;
 
             RefreshTVFromPath(_appSettings.RootDirectory);
 
@@ -96,15 +99,35 @@ namespace SubSearchUI
             var result = pWindow.ShowDialog();
 
             if (result == true)
-                ReloadFileList((tvFolders.SelectedValue as TVDirectoryItem).FullPath);
+            {
+                // Reload options
+                string oldRoot = _appSettings.RootDirectory;
+                string oldLang = _appSettings.DefaultLanguage;
+
+                _appSettings = _services.GetRequiredService<IWritableOptions<AppSettings>>().Value;
+
+                if (oldRoot != _appSettings.RootDirectory)
+                    RefreshTVFromPath(_appSettings.RootDirectory);
+
+                if (oldRoot != _appSettings.RootDirectory || oldLang != _appSettings.DefaultLanguage)
+                    ReloadFileList(_vm.SelectedDirectory.FullPath);
+            }
         }
 
         private void TvFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
+            // We must set the selected directory here, because inexplicably, the treeview control does not allow you
+            // to bind to the selected item directly
+            TreeView tvSender = (sender as TreeView);
             try
             {
-                TVDirectoryItem tvdi = (e.OriginalSource as TreeView).SelectedItem as TVDirectoryItem;
-                ReloadFileList(tvdi.FullPath);
+                TVDirectoryItem tvdi = (tvSender.SelectedItem as TVDirectoryItem);
+
+                if (tvdi != null)
+                {
+                    _vm.SelectedDirectory = tvdi;
+                    ReloadFileList(_vm.SelectedDirectory.FullPath);
+                }
                 
             }
             catch (Exception ex)
@@ -197,33 +220,40 @@ namespace SubSearchUI
 
         private void RefreshTVFromPath(string rootDirectory)
         {
-            string rootDirName;
-            _vm.DirectoryList = new ObservableCollection<TVDirectoryItem>();
+            var newDirectoryList = new ObservableCollection<TVDirectoryItem>();
 
             // TODO: Add support for multiple root directories
 
+            /*
             if (rootDirectory.Length == 3 && rootDirectory.Contains(@":\"))
                 rootDirName = rootDirectory;
             else
                 rootDirName = System.IO.Path.GetDirectoryName(rootDirectory);
+            */
 
             var rootItem = new TVDirectoryItem()
             {
                 FullPath = rootDirectory,
                 ImageSource = "/Images/folder.png",
-                Text = rootDirName,
+                Text = rootDirectory,
                 SubItems = new ObservableCollection<TVDirectoryItem>()
             };
 
             rootItem.SubItems.Add(TVDirectoryItem.GetDummyItem());
 
-            _vm.DirectoryList.Add(rootItem);
+            newDirectoryList.Add(rootItem);
+
+            // Change this in one go to avoid setting the listview into an intermediate state
+            _vm.DirectoryList = newDirectoryList;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            // Select the first item progmatically
             var tvi = FindTviFromObjectRecursive(tvFolders, _vm.DirectoryList[0]);
-            if (tvi != null) tvi.IsSelected = true;
+
+            if (tvi != null)
+                tvi.IsSelected = true;
         }
 
         private void LvFiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
