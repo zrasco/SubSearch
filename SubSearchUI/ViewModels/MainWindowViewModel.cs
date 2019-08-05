@@ -1,4 +1,5 @@
 ﻿using GalaSoft.MvvmLight;
+using GalaSoft.MvvmLight.Command;
 using SubSearchUI.Models;
 using System;
 using System.Collections.Concurrent;
@@ -78,13 +79,13 @@ namespace SubSearchUI.ViewModels
         /// </summary>
         public const string CommandParameterPropertyName = "CommandParameter";
 
-        private string _commandParameter;
+        private SubtitleFileInfo _commandParameter;
 
         /// <summary>
         /// Sets and gets the CommandParameter property.
         /// Changes to that property's value raise the PropertyChanged event. 
         /// </summary>
-        public string CommandParameter
+        public SubtitleFileInfo CommandParameter
         {
             get
             {
@@ -165,15 +166,69 @@ namespace SubSearchUI.ViewModels
                     foreach (var info in SelectedVideos[0].SubtitleFileList)
                     {
                         if (info.Exists)
-                            retval.Add(new VFIContextMenuItem() { Displayname = $"Delete {info.Filename}...", Icon = "/Images/error.png", CommandParameter = info.FullPath });
+                            retval.Add(new VFIContextMenuItem() { Displayname = $"Delete {info.Filename}...", Icon = "/Images/error.png", Command = DeleteSubtitleCommand, CommandParameter = info });
                         else
-                            retval.Add(new VFIContextMenuItem() { Displayname = $"Download {info.Filename}...", Icon = "/Images/download.png", CommandParameter = info.FullPath });
+                            retval.Add(new VFIContextMenuItem() { Displayname = $"Download {info.Filename}...", Icon = "/Images/download.png", Command = DownloadSubtitleCommand, CommandParameter = info });
                     }
                 }
 
                 return retval;
             }
         }
+
+        #region RelayCommands
+
+        private RelayCommand<SubtitleFileInfo> _deleteSubtitleCommand;
+
+        /// <summary>
+        /// Gets the DeleteSubtitleCommand.
+        /// </summary>
+        public RelayCommand<SubtitleFileInfo> DeleteSubtitleCommand
+        {
+            get
+            {
+                return _deleteSubtitleCommand ?? (_deleteSubtitleCommand = new RelayCommand<SubtitleFileInfo>(
+                    ExecuteDeleteSubtitleCommand,
+                    CanExecuteDeleteSubtitleCommand));
+            }
+        }
+
+        private void ExecuteDeleteSubtitleCommand(SubtitleFileInfo parameter)
+        {
+            MessageBox.Show($"Deleting subtitle '{parameter.FullPath}'...");
+        }
+
+        private bool CanExecuteDeleteSubtitleCommand(SubtitleFileInfo parameter)
+        {
+            return true;
+        }
+
+        private RelayCommand<SubtitleFileInfo> _downloadSubtitleCommand;
+
+        /// <summary>
+        /// Gets the DownloadSubtitleCommand.
+        /// </summary>
+        public RelayCommand<SubtitleFileInfo> DownloadSubtitleCommand
+        {
+            get
+            {
+                return _downloadSubtitleCommand ?? (_downloadSubtitleCommand = new RelayCommand<SubtitleFileInfo>(
+                    ExecuteDownloadSubtitleCommand,
+                    CanExecuteDownloadSubtitleCommand));
+            }
+        }
+
+        private void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
+        {
+            MessageBox.Show($"Downloading subtitle '{parameter.FullPath}'...");
+        }
+
+        private bool CanExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
+        {
+            return true;
+        }
+
+        #endregion // RelayCommands
 
         /// <summary>
         /// The <see cref="ItemsQueue" /> property's name.

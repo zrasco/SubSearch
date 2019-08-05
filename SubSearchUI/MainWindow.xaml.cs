@@ -54,11 +54,6 @@ namespace SubSearchUI
             DataContext = _vm;
 
             RefreshTVFromPath(_appSettings.RootDirectory);
-
-            AddLogEntry("Sample OK entry", ImageType.OK);
-            AddLogEntry("Sample info entry", ImageType.Info);
-            AddLogEntry("Sample warning entry", ImageType.Warning);
-            AddLogEntry("Sample error entry", ImageType.Error);
         }
 
         private static TreeViewItem FindTviFromObjectRecursive(ItemsControl ic, object o)
