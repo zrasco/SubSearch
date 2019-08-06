@@ -59,12 +59,16 @@ namespace SubSearchUI
             Random rand = new Random();
 
             // Add test items to queue
-            _vm.Scheduler.AddItem("Test #1", (item) =>
+            _vm.Scheduler.AddItem("Test #1", (item, cancellationToken) =>
             {
                 
                 while (item.ProgressPercentage < 1)
                 {
                     Thread.Sleep(rand.Next(10, 50));
+
+                    if (cancellationToken.IsCancellationRequested)
+                        cancellationToken.ThrowIfCancellationRequested();
+
                     item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
                 }
 
@@ -73,12 +77,16 @@ namespace SubSearchUI
                 return true;
             });
 
-            _vm.Scheduler.AddItem("Test #2", (item) =>
+            _vm.Scheduler.AddItem("Test #2", (item, cancellationToken) =>
             {
 
                 while (item.ProgressPercentage < 1)
                 {
                     Thread.Sleep(rand.Next(10, 50));
+
+                    if (cancellationToken.IsCancellationRequested)
+                        cancellationToken.ThrowIfCancellationRequested();
+
                     item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
                 }
 
@@ -87,12 +95,16 @@ namespace SubSearchUI
                 return true;
             });
 
-            _vm.Scheduler.AddItem("Test #3", (item) =>
+            _vm.Scheduler.AddItem("Test #3", (item, cancellationToken) =>
             {
 
                 while (item.ProgressPercentage < 1)
                 {
                     Thread.Sleep(rand.Next(10, 50));
+
+                    if (cancellationToken.IsCancellationRequested)
+                        cancellationToken.ThrowIfCancellationRequested();
+
                     item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
                 }
 
@@ -101,27 +113,16 @@ namespace SubSearchUI
                 return true;
             });
 
-
-            _vm.Scheduler.AddItem("Test #4", (item) =>
-            {
-
-                while (item.ProgressPercentage < 1)
-                {
-                    Thread.Sleep(rand.Next(10, 500));
-                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
-                }
-
-                item.ProgressPercentage = 1;
-
-                return true;
-            });
-
-            _vm.Scheduler.AddItem("Test #5", (item) =>
+            _vm.Scheduler.AddItem("Test #4", (item, cancellationToken) =>
             {
 
                 while (item.ProgressPercentage < 1)
                 {
                     Thread.Sleep(rand.Next(10, 50));
+
+                    if (cancellationToken.IsCancellationRequested)
+                        cancellationToken.ThrowIfCancellationRequested();
+
                     item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
                 }
 
@@ -130,13 +131,16 @@ namespace SubSearchUI
                 return true;
             });
 
-
-            _vm.Scheduler.AddItem("Test #6", (item) =>
+            _vm.Scheduler.AddItem("Test #5", (item, cancellationToken) =>
             {
 
                 while (item.ProgressPercentage < 1)
                 {
-                    Thread.Sleep(rand.Next(10, 500));
+                    Thread.Sleep(rand.Next(10, 50));
+
+                    if (cancellationToken.IsCancellationRequested)
+                        cancellationToken.ThrowIfCancellationRequested();
+
                     item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
                 }
 
@@ -144,6 +148,25 @@ namespace SubSearchUI
 
                 return true;
             });
+
+            _vm.Scheduler.AddItem("Test #6", (item, cancellationToken) =>
+            {
+
+                while (item.ProgressPercentage < 1)
+                {
+                    Thread.Sleep(rand.Next(10, 50));
+
+                    if (cancellationToken.IsCancellationRequested)
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
+                }
+
+                item.ProgressPercentage = 1;
+
+                return true;
+            });
+
 
             DataContext = _vm;
 

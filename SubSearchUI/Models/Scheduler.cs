@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 
@@ -19,7 +20,7 @@ namespace SubSearchUI.Models
             QueueItemStatusChange += onQueueItemStatusChangeEventHandler;
         }
 
-        public QueueItem AddItem(string text, Func<QueueItem, bool> actionWithResult)
+        public QueueItem AddItem(string text, Func<QueueItem, CancellationToken, bool> actionWithResult)
         {
             QueueItem queueItem = new QueueItem() { Text = text, Status = QueueStatus.InQueue, Work = actionWithResult };
 

@@ -165,14 +165,12 @@ namespace SubSearchUI.Models
         {
             _cancellationTokenSource = new CancellationTokenSource();
 
-            _cancellationTokenSource.Token.ThrowIfCancellationRequested();
-
             var retval = Task.Factory.StartNew(() =>
             {
                 // Get the current thread in case we need to cancel the task
                 try
                 {
-                    return Work(this);
+                    return Work(this, _cancellationTokenSource.Token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -211,7 +209,7 @@ namespace SubSearchUI.Models
 
         }
 
-        public Func<QueueItem, bool> Work { get; set; }
+        public Func<QueueItem, CancellationToken, bool> Work { get; set; }
 
         private CancellationTokenSource _cancellationTokenSource;
     }
