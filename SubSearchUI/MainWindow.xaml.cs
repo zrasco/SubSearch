@@ -15,6 +15,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -39,6 +40,11 @@ namespace SubSearchUI
         private readonly MainWindowViewModel _vm;
         private readonly IServiceProvider _services;
 
+        void QueueItemStatusChangeEventHandler(QueueItem item)
+        {
+            lvQueue.ScrollIntoView(item);
+        }
+
         public MainWindow(IServiceProvider services, IWritableOptions<AppSettings> settings)
         {
             InitializeComponent();
@@ -46,14 +52,103 @@ namespace SubSearchUI
             Application.Current.DispatcherUnhandledException += new System.Windows.Threading.DispatcherUnhandledExceptionEventHandler(Current_DispatcherUnhandledException);
 
             _appSettings = settings.Value;
-            _vm = new MainWindowViewModel();
+            _vm = new MainWindowViewModel(QueueItemStatusChangeEventHandler);
             _services = services;
 
+
+            Random rand = new Random();
+
             // Add test items to queue
-            _vm.ItemsQueue.Add(new QueueItem() { Text = "Test from VM copy", Status = "In Progress" });
+            _vm.Scheduler.AddItem("Test #1", (item) =>
+            {
+                
+                while (item.ProgressPercentage < 1)
+                {
+                    Thread.Sleep(rand.Next(10, 50));
+                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
+                }
+
+                item.ProgressPercentage = 1;
+
+                return true;
+            });
+
+            _vm.Scheduler.AddItem("Test #2", (item) =>
+            {
+
+                while (item.ProgressPercentage < 1)
+                {
+                    Thread.Sleep(rand.Next(10, 50));
+                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
+                }
+
+                item.ProgressPercentage = 1;
+
+                return true;
+            });
+
+            _vm.Scheduler.AddItem("Test #3", (item) =>
+            {
+
+                while (item.ProgressPercentage < 1)
+                {
+                    Thread.Sleep(rand.Next(10, 50));
+                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
+                }
+
+                item.ProgressPercentage = 1;
+
+                return true;
+            });
+
+
+            _vm.Scheduler.AddItem("Test #4", (item) =>
+            {
+
+                while (item.ProgressPercentage < 1)
+                {
+                    Thread.Sleep(rand.Next(10, 500));
+                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
+                }
+
+                item.ProgressPercentage = 1;
+
+                return true;
+            });
+
+            _vm.Scheduler.AddItem("Test #5", (item) =>
+            {
+
+                while (item.ProgressPercentage < 1)
+                {
+                    Thread.Sleep(rand.Next(10, 50));
+                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
+                }
+
+                item.ProgressPercentage = 1;
+
+                return true;
+            });
+
+
+            _vm.Scheduler.AddItem("Test #6", (item) =>
+            {
+
+                while (item.ProgressPercentage < 1)
+                {
+                    Thread.Sleep(rand.Next(10, 500));
+                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
+                }
+
+                item.ProgressPercentage = 1;
+
+                return true;
+            });
+
             DataContext = _vm;
 
             RefreshTVFromPath(_appSettings.RootDirectory);
+
         }
 
         private static TreeViewItem FindTviFromObjectRecursive(ItemsControl ic, object o)
@@ -249,24 +344,37 @@ namespace SubSearchUI
 
             if (tvi != null)
                 tvi.IsSelected = true;
+
+            // Start the background jobs scheduler
+            Dispatcher.InvokeAsync(new Action(BackgroundJobScheduler), DispatcherPriority.ApplicationIdle);
+        }
+
+        private async void BackgroundJobScheduler()
+        {
+            // Start background jobs as nessecary
+            var appSettings = _services.GetRequiredService<IWritableOptions<AppSettings>>().Value;
+
+            // Cycle the scheduler items
+            _vm.Scheduler.Cycle(appSettings.MaxBackgroundJobs);
+
+            // Continue the background jobs scheduler. Default quantum value is 50ms but this can be adjusted thru settings.
+            await Task.Delay(appSettings.SchedulerQuantum);
+            await Dispatcher.BeginInvoke(new Action(BackgroundJobScheduler), DispatcherPriority.ApplicationIdle);
         }
 
         private void LvFiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            
-            //var menu = FindResource("videoContextMenu") as ContextMenu;
+            // If you press ctrl+A to select all of the items, only the selected ones get IsSelected set to true.
+            // This is because WPF uses a virtualizing stackpanel by default
+            // Source: https://stackoverflow.com/questions/7372893/how-to-bind-isselected-in-a-listview-for-non-visible-virtualized-items
+            //
+            // We'll use a workaround here that shouldn't affect normal performance, since the list of files in a single directory should never be extremely large
 
-            //if (menu != null && menu.IsOpen)
-            //    menu.Visibility = Visibility.Collapsed;
-
-            //if (menu != null && !menu.IsOpen)
-            //{
-                //_vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuItems));
-                //_vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuVisible));
-            //}
+            foreach (VideoFileItem item in lvFiles.SelectedItems)
+                item.IsSelected = true;
         }
 
-        private void VideoFileContextMenu_Opened(object sender, RoutedEventArgs e)
+        private void VideoFileContextMenu_Opening(object sender, RoutedEventArgs e)
         {
             // Refresh the context menu items/visibility before opening
             _vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuItems));
@@ -275,6 +383,24 @@ namespace SubSearchUI
             // Close the context menu if not visible
             if (_vm.SelectedVideoMenuVisible != Visibility.Visible)
                 (sender as ContextMenu).IsOpen = false;
+        }
+
+        private void QueueItemContextMenu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            // Manually raise the event before showing to update the enabled/disabled status. This isn't automatic
+            _vm.CancelSelectedQueueItemsCommand.RaiseCanExecuteChanged();
+        }
+
+        private void LvQueue_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // If you press ctrl+A to select all of the items, only the selected ones get IsSelected set to true.
+            // This is because WPF uses a virtualizing stackpanel by default
+            // Source: https://stackoverflow.com/questions/7372893/how-to-bind-isselected-in-a-listview-for-non-visible-virtualized-items
+            //
+            // We'll use a workaround here that shouldn't affect normal performance, since the queue should never be extremely large
+
+            foreach (QueueItem item in lvQueue.SelectedItems)
+                item.IsSelected = true;
         }
     }
 }

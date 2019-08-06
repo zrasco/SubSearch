@@ -22,6 +22,7 @@ namespace ProviderAddic7ed
         void Init();
         // Perform any cleanup here
         void Unload();
+        string Version();
         // Reports the capabilities of the provider (can search by hash, etc...). Use a bitwise OR with the SearchCapabilities above
         SearchCapabilities ProviderCapabilities();
         // Search by file hash

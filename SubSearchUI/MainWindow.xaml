@@ -4,18 +4,20 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SubSearchUI"
+        xmlns:converters="clr-namespace:SubSearchUI.Models.Converters"
         mc:Ignorable="d"
         Title="Subsearcher UI" Height="450" Width="800"
         WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
         Loaded="Window_Loaded">
     <Window.Resources>
+        <converters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
         <BitmapImage x:Key="NullImage" UriSource="/Images/null.png"/>
         <Image x:Shared="false" x:Key="contextMenuIconImage" Height="16" Width="16" Source="{Binding Icon}"/>
         <Image x:Shared="false" x:Key="preferencesMenuIconImage" Height="16" Width="16" Source="{Binding Source='/Images/preferences.png'}"/>
         <Image x:Shared="false" x:Key="exitMenuIconImage" Height="16" Width="16" Source="{Binding Source='/Images/error.png'}"/>
         <ContextMenu x:Key="videoContextMenu"
                      x:Name="videoFileContextMenu"
-                     Opened="VideoFileContextMenu_Opened"
                      DataContext="{Binding Path=PlacementTarget.Tag.DataContext, RelativeSource={RelativeSource Self}}"
                      ItemsSource="{Binding Path=SelectedVideoMenuItems}"
                      Visibility="{Binding Path=SelectedVideoMenuVisible}">
@@ -71,14 +73,15 @@
                         </StackPanel>
                     </HierarchicalDataTemplate>
                 </TreeView.ItemTemplate>
-            </TreeView>            
+            </TreeView>
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"/>
             <ListView x:Name="lvFiles"
                       SelectionChanged="LvFiles_SelectionChanged"
                       Grid.Column="2"
                       Width="Auto"
                       ItemsSource="{Binding FileList}"
-                      SelectionMode="Extended">
+                      SelectionMode="Extended"
+                      ContextMenuOpening="VideoFileContextMenu_Opening">
                 <ListView.Resources>
                     <Style TargetType="{x:Type ListViewItem}">
                         <Setter Property="IsSelected" Value="{Binding IsSelected}"/>
@@ -96,9 +99,52 @@
                 </ListView.ItemTemplate>
             </ListView>
         </Grid>
-        
         <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"/>
         <TabControl Grid.Row="3">
+            <TabItem Header="Queue">
+                <Grid>
+                    <ListView x:Name="lvQueue"
+                              ItemsSource="{Binding Path=Scheduler.ItemsQueue, Mode=TwoWay}"
+                              ContextMenuOpening="QueueItemContextMenu_ContextMenuOpening"
+                              SelectionChanged="LvQueue_SelectionChanged"
+                              SelectionMode="Extended">
+                        <ListView.Resources>
+                            <Style TargetType="{x:Type ListViewItem}">
+                                <Setter Property="IsSelected" Value="{Binding IsSelected}"/>
+                                <!-- For ProgressBar -->
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListView.Resources>
+                        <ListView.ContextMenu>
+                            <ContextMenu x:Name="queueItemContextMenu">
+                                <MenuItem Header="Abort/Cancel" Command="{Binding Path=CancelSelectedQueueItemsCommand}" Icon="{StaticResource exitMenuIconImage}"/>
+                            </ContextMenu>
+                        </ListView.ContextMenu>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Text}" Width="200" />
+                                <GridViewColumn Header="Status" DisplayMemberBinding="{Binding Status, Converter={StaticResource EnumDescriptionConverter}}" Width="200" />
+                                <GridViewColumn Header="Progress" Width="200">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <ProgressBar
+                                                    Minimum="0"
+                                                    Maximum="1"
+                                                    Value="{Binding Path=ProgressPercentage, UpdateSourceTrigger=PropertyChanged}"
+                                                    Width="Auto"
+                                                    IsEnabled="False"/>
+                                                <TextBlock Text="{Binding Path=ProgressText, StringFormat=p}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </TabItem>
             <TabItem Header="Log">
                 <Grid>
                     <ListView x:Name="lvLog"
@@ -118,26 +164,6 @@
                     </ListView>
                 </Grid>
             </TabItem>
-            <TabItem Header="Queue">
-                <Grid>
-                    <ListView x:Name="lvQueue" ItemsSource="{Binding Path=ItemsQueue, Mode=OneWay}">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Text}" Width="200" />
-                                <GridViewColumn Header="Status" DisplayMemberBinding="{Binding Status}" Width="200" />
-                                <GridViewColumn Header="Progress" Width="200">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <CheckBox IsChecked="True" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </Grid>
-            </TabItem>
-        </TabControl>
-        
+            </TabControl>
     </Grid>
 </Window>

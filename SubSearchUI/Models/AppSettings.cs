@@ -13,15 +13,13 @@ namespace SubSearchUI
     {
         public AppSettings()
         {
-            Simple = new List<string>();
             Plugins = new List<Plugin>();
         }
-
+        public int MaxBackgroundJobs { get; set; }
+        public int SchedulerQuantum { get; set; }
         public string RootDirectory { get; set; }
         public string DefaultLanguage { get; set; }
         public string VideoExtensions { get; set; }
-        public List<string> Simple { get; }
         public List<Plugin> Plugins { get; }
-        
     }
 }

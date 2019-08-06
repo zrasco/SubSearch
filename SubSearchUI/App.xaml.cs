@@ -42,7 +42,8 @@ namespace SubSearchUI
             // Set up global variable for culture infos
             Current.Properties["CultureInfo"] = CultureInfo.GetCultures(CultureTypes.AllCultures & ~CultureTypes.NeutralCultures);
 
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+
             mainWindow.Show();
         }
 

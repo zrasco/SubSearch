@@ -110,5 +110,10 @@ namespace ProviderAddic7ed
 
             return downloadedSubs;
         }
+
+        public string Version()
+        {
+            return "0.5";
+        }
     }
 }

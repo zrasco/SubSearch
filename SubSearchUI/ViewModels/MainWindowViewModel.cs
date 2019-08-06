@@ -228,35 +228,69 @@ namespace SubSearchUI.ViewModels
             return true;
         }
 
-        #endregion // RelayCommands
+        private RelayCommand _cancelSelectedQueueItemsCommand;
 
         /// <summary>
-        /// The <see cref="ItemsQueue" /> property's name.
+        /// Gets the CancelSelectedQueueItemsCommand.
         /// </summary>
-        public const string ItemsQueuePropertyName = "ItemsQueue";
-
-        private ObservableCollection<QueueItem> _itemsQueue;
-
-        /// <summary>
-        /// Sets and gets the ItemsQueue property.
-        /// Changes to that property's value raise the PropertyChanged event. 
-        /// </summary>
-        public ObservableCollection<QueueItem> ItemsQueue
+        public RelayCommand CancelSelectedQueueItemsCommand
         {
             get
             {
-                return _itemsQueue;
+                return _cancelSelectedQueueItemsCommand ?? (_cancelSelectedQueueItemsCommand = new RelayCommand(
+                    ExecuteCancelSelectedQueueItemsCommand,
+                    CanExecuteCancelSelectedQueueItemsCommand));
+            }
+        }
+
+        private void ExecuteCancelSelectedQueueItemsCommand()
+        {
+            foreach (var queueItem in Scheduler.ItemsQueue.Where(x => x.IsSelected == true))
+            {
+                queueItem.CancelWork();
+            }
+        }
+
+        private bool CanExecuteCancelSelectedQueueItemsCommand()
+        {
+            foreach (var queueItem in Scheduler.ItemsQueue.Where(x => x.IsSelected == true))
+            {
+                if (queueItem.CanCancel())
+                    return true;
+            }
+
+            return false;
+        }
+
+        #endregion // RelayCommands
+
+        /// <summary>
+        /// The <see cref="Scheduler" /> property's name.
+        /// </summary>
+        public const string SchedulerPropertyName = "Scheduler";
+
+        private Scheduler _scheduler;
+
+        /// <summary>
+        /// Sets and gets the Scheduler property.
+        /// Changes to that property's value raise the PropertyChanged event. 
+        /// </summary>
+        public Scheduler Scheduler
+        {
+            get
+            {
+                return _scheduler;
             }
 
             set
             {
-                if (_itemsQueue == value)
+                if (_scheduler == value)
                 {
                     return;
                 }
 
-                _itemsQueue = value;
-                RaisePropertyChanged(ItemsQueuePropertyName);
+                _scheduler = value;
+                RaisePropertyChanged(SchedulerPropertyName);
             }
         }
 
@@ -380,12 +414,12 @@ namespace SubSearchUI.ViewModels
             }
         }
 
-        public MainWindowViewModel()
+        public MainWindowViewModel(Action<QueueItem> QueueItemFinishedEventHandler)
         {
             DirectoryList = new ObservableCollection<TVDirectoryItem>();
             FileList = new ObservableCollection<VideoFileItem>();
             LogItems = new ObservableCollection<ItemWithImage>();
-            ItemsQueue = new ObservableCollection<QueueItem>();
+            Scheduler = new Scheduler(QueueItemFinishedEventHandler);
         }
     }
 }
