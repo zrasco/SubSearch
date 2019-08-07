@@ -265,6 +265,35 @@ namespace SubSearchUI.ViewModels
         #endregion // RelayCommands
 
         /// <summary>
+        /// The <see cref="StatusText" /> property's name.
+        /// </summary>
+        public const string StatusTextPropertyName = "StatusText";
+
+        private string _statusText;
+
+        /// <summary>
+        /// Sets and gets the StatusText property.
+        /// Changes to that property's value raise the PropertyChanged event. 
+        /// </summary>
+        public string StatusText
+        {
+            get
+            {
+                return _statusText;
+            }
+
+            set
+            {
+                if (_statusText == value)
+                {
+                    return;
+                }
+
+                _statusText = value;
+                RaisePropertyChanged(StatusTextPropertyName);
+            }
+        }
+        /// <summary>
         /// The <see cref="Scheduler" /> property's name.
         /// </summary>
         public const string SchedulerPropertyName = "Scheduler";

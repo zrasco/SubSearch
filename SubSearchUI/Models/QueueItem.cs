@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
 
 namespace SubSearchUI.Models
 {
@@ -25,6 +26,36 @@ namespace SubSearchUI.Models
     };
     public class QueueItem : ObservableObject
     {
+        /// <summary>
+        /// The <see cref="TextColor" /> property's name.
+        /// </summary>
+        public const string TextColorPropertyName = "TextColor";
+
+        private Brush _textColor = Brushes.Black;
+
+        /// <summary>
+        /// Sets and gets the TextColor property.
+        /// Changes to that property's value raise the PropertyChanged event. 
+        /// </summary>
+        public Brush TextColor
+        {
+            get
+            {
+                return _textColor;
+            }
+
+            set
+            {
+                if (_textColor == value)
+                {
+                    return;
+                }
+
+                _textColor = value;
+                RaisePropertyChanged(TextColorPropertyName);
+            }
+        }
+
         /// <summary>
         /// The <see cref="Text" /> property's name.
         /// </summary>
@@ -81,6 +112,23 @@ namespace SubSearchUI.Models
                 }
 
                 _status = value;
+
+                if (_status == QueueStatus.Aborted || _status == QueueStatus.Failed)
+                    TextColor = Brushes.Red;
+                else if (_status == QueueStatus.Cancelled)
+                    TextColor = Brushes.Gray;
+                else if (_status == QueueStatus.Complete)
+                {
+                    if (ProgressPercentage != 1)
+                        ProgressPercentage = 1;
+
+                    TextColor = Brushes.Green;
+                }
+                else if (_status == QueueStatus.InProgress)
+                    TextColor = Brushes.Blue;
+                else
+                    TextColor = Brushes.Black;
+
                 RaisePropertyChanged(ProgressTextPropertyName);
                 RaisePropertyChanged(StatusPropertyName);
             }
@@ -206,10 +254,10 @@ namespace SubSearchUI.Models
                 else
                     Status = QueueStatus.Cancelled;
             }
-
         }
 
         public Func<QueueItem, CancellationToken, bool> Work { get; set; }
+        public Action<QueueItem> DoWhenDone { get; set; }
 
         private CancellationTokenSource _cancellationTokenSource;
     }

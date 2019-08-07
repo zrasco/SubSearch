@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ProviderAddic7ed
+namespace ProviderPluginTypes
 {
     public enum SearchCapabilities { None = 0, Hash = 1, TV = 2 };
 
@@ -16,7 +16,7 @@ namespace ProviderAddic7ed
         public CultureInfo CultureInfo { get; set; }
     }
 
-    interface IProviderPlugin
+    public interface IProviderPlugin
     {
         // Called when the plugin is loaded into the program
         void Init();
@@ -28,6 +28,6 @@ namespace ProviderAddic7ed
         // Search by file hash
         Task<IList<DownloadedSubtitle>> SearchSubtitlesByHashAsync(string fileHash, long fileSize, IList<CultureInfo> cultureInfos);
         // Search by show, season and episode #
-        Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(ILogger logger, string showName, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos);
+        Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(string showName, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos);
     }
 }

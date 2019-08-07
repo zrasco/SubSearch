@@ -20,9 +20,14 @@ namespace SubSearchUI.Models
             QueueItemStatusChange += onQueueItemStatusChangeEventHandler;
         }
 
-        public QueueItem AddItem(string text, Func<QueueItem, CancellationToken, bool> actionWithResult)
+        public QueueItem AddItem(string text, Func<QueueItem, CancellationToken, bool> actionWithResult, Action<QueueItem> actionWhenDone = null)
         {
-            QueueItem queueItem = new QueueItem() { Text = text, Status = QueueStatus.InQueue, Work = actionWithResult };
+
+            // Can't set default parameter to this in the function signature because it's not a compile-time constant
+            if (actionWhenDone == null)
+                actionWhenDone = (ignoreme) => { };
+
+            QueueItem queueItem = new QueueItem() { Text = text, Status = QueueStatus.InQueue, Work = actionWithResult, DoWhenDone = actionWhenDone };
 
             ItemsQueue.Add(queueItem);
 
@@ -48,7 +53,8 @@ namespace SubSearchUI.Models
                     QueueItemStatusChange.Invoke(queueItem);
                 }
 
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+            }, TaskScheduler.FromCurrentSynchronizationContext())
+                .ContinueWith((ignoreme) => queueItem.DoWhenDone(queueItem), TaskScheduler.FromCurrentSynchronizationContext());
         }
         
         public void Cycle(int maxBackgroundJobs)

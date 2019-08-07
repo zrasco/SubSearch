@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -104,7 +105,8 @@ namespace SubSearchUI.Models
                     catch (Exception ex)
                     {
                         // TODO: Add exception to logger the "correct" way and remove tight coupling
-                        (Application.Current.MainWindow as MainWindow).AddLogEntry(ex.Message, MainWindow.ImageType.Error);
+
+                        (Application.Current.MainWindow as MainWindow).AddLogEntry(ex.Message, LogLevel.Error);
                         IsNodeExpanded = false;
 
                         //throw ex;

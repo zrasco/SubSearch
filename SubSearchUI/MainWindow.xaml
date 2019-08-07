@@ -37,6 +37,7 @@
             <RowDefinition Height="6*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="2*"/>
+            <RowDefinition Height="22"/>
         </Grid.RowDefinitions>
         <Menu Grid.Row="0">
             <MenuItem Header="_File">
@@ -123,8 +124,24 @@
                         </ListView.ContextMenu>
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Text}" Width="200" />
-                                <GridViewColumn Header="Status" DisplayMemberBinding="{Binding Status, Converter={StaticResource EnumDescriptionConverter}}" Width="200" />
+                                <GridViewColumn Header="Task" Width="200">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Status" Width="200">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <TextBlock Text="{Binding Status, Converter={StaticResource EnumDescriptionConverter}}" Foreground="{Binding Path=TextColor}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                                 <GridViewColumn Header="Progress" Width="200">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
@@ -134,7 +151,8 @@
                                                     Maximum="1"
                                                     Value="{Binding Path=ProgressPercentage, UpdateSourceTrigger=PropertyChanged}"
                                                     Width="Auto"
-                                                    IsEnabled="False"/>
+                                                    IsEnabled="False"
+                                                    Foreground="{Binding Path=TextColor}"/>
                                                 <TextBlock Text="{Binding Path=ProgressText, StringFormat=p}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </Grid>
                                         </DataTemplate>
@@ -148,11 +166,11 @@
             <TabItem Header="Log">
                 <Grid>
                     <ListView x:Name="lvLog"
-                      Width="Auto"
-                      Height="Auto"
-                      Background="#FFFFFFFF"
-                      BorderBrush="#FFFFFFFF"
-                    ItemsSource="{Binding LogItems}">
+                                Width="Auto"
+                                Height="Auto"
+                                Background="#FFFFFFFF"
+                                BorderBrush="#FFFFFFFF"
+                                ItemsSource="{Binding LogItems}">
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
@@ -164,6 +182,11 @@
                     </ListView>
                 </Grid>
             </TabItem>
-            </TabControl>
+        </TabControl>
+        <StatusBar Grid.Row="4">
+            <StatusBarItem>
+                <TextBlock Name="txtSatus" Text="{Binding StatusText}"/>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>

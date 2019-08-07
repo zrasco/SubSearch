@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using ProviderPluginTypes;
+using SubSearchUI.Services.Abstract;
+using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
 
 namespace SubSearchUI
 {
@@ -8,6 +13,21 @@ namespace SubSearchUI
     {
         public string Name { get; set; }
         public string File { get; set; }
+
+        [JsonIgnore]
+        [JsonProperty(Required = Required.Default)]
+        public IProviderPlugin Interface { get; set; } = null;
+        [JsonIgnore]
+        [JsonProperty(Required = Required.Default)]
+        public bool Loaded {
+            get
+            {
+                if (Interface == null)
+                    return false;
+                else
+                    return true;
+            }
+        }
     }
     public class AppSettings
     {
@@ -20,6 +40,6 @@ namespace SubSearchUI
         public string RootDirectory { get; set; }
         public string DefaultLanguage { get; set; }
         public string VideoExtensions { get; set; }
-        public List<Plugin> Plugins { get; }
+        public List<Plugin> Plugins { get; set; }
     }
 }

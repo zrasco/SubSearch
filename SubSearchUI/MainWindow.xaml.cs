@@ -1,7 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ProviderPluginTypes;
 using SubSearchUI.Models;
 using SubSearchUI.Services.Abstract;
+using SubSearchUI.Services.Concrete;
 using SubSearchUI.ViewModels;
 using SubSearchUI.Views;
 using System;
@@ -14,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,134 +43,50 @@ namespace SubSearchUI
         private AppSettings _appSettings;
         private readonly MainWindowViewModel _vm;
         private readonly IServiceProvider _services;
+        private readonly ILogger<MainWindow> _logger;
+
+
+        //public event Action<string, LogLevel> LoggingEventNormal;
+        //public event Action<Exception, LogLevel> LoggingEventException;
 
         void QueueItemStatusChangeEventHandler(QueueItem item)
         {
             lvQueue.ScrollIntoView(item);
         }
 
-        public MainWindow(IServiceProvider services, IWritableOptions<AppSettings> settings)
+        public MainWindow(IServiceProvider services, IWritableOptions<AppSettings> settings, ILogger<MainWindow> logger)
         {
             InitializeComponent();
 
-            Application.Current.DispatcherUnhandledException += new System.Windows.Threading.DispatcherUnhandledExceptionEventHandler(Current_DispatcherUnhandledException);
-
+            _logger = logger;
             _appSettings = settings.Value;
             _vm = new MainWindowViewModel(QueueItemStatusChangeEventHandler);
             _services = services;
 
+            Application.Current.DispatcherUnhandledException += new DispatcherUnhandledExceptionEventHandler(Current_DispatcherUnhandledException);
 
             Random rand = new Random();
 
             // Add test items to queue
-            _vm.Scheduler.AddItem("Test #1", (item, cancellationToken) =>
+            for (int x = 1; x <= 1; x++)
             {
-                
-                while (item.ProgressPercentage < 1)
+                _vm.Scheduler.AddItem($"Test #{x}", (item, cancellationToken) =>
                 {
-                    Thread.Sleep(rand.Next(10, 50));
+                    while (item.ProgressPercentage < 1)
+                    {
+                        Thread.Sleep(rand.Next(10, 50));
 
-                    if (cancellationToken.IsCancellationRequested)
-                        cancellationToken.ThrowIfCancellationRequested();
+                        if (cancellationToken.IsCancellationRequested)
+                            cancellationToken.ThrowIfCancellationRequested();
 
-                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
-                }
+                        item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
+                    }
 
-                item.ProgressPercentage = 1;
+                    item.ProgressPercentage = 1;
 
-                return true;
-            });
-
-            _vm.Scheduler.AddItem("Test #2", (item, cancellationToken) =>
-            {
-
-                while (item.ProgressPercentage < 1)
-                {
-                    Thread.Sleep(rand.Next(10, 50));
-
-                    if (cancellationToken.IsCancellationRequested)
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
-                }
-
-                item.ProgressPercentage = 1;
-
-                return true;
-            });
-
-            _vm.Scheduler.AddItem("Test #3", (item, cancellationToken) =>
-            {
-
-                while (item.ProgressPercentage < 1)
-                {
-                    Thread.Sleep(rand.Next(10, 50));
-
-                    if (cancellationToken.IsCancellationRequested)
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
-                }
-
-                item.ProgressPercentage = 1;
-
-                return true;
-            });
-
-            _vm.Scheduler.AddItem("Test #4", (item, cancellationToken) =>
-            {
-
-                while (item.ProgressPercentage < 1)
-                {
-                    Thread.Sleep(rand.Next(10, 50));
-
-                    if (cancellationToken.IsCancellationRequested)
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
-                }
-
-                item.ProgressPercentage = 1;
-
-                return true;
-            });
-
-            _vm.Scheduler.AddItem("Test #5", (item, cancellationToken) =>
-            {
-
-                while (item.ProgressPercentage < 1)
-                {
-                    Thread.Sleep(rand.Next(10, 50));
-
-                    if (cancellationToken.IsCancellationRequested)
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
-                }
-
-                item.ProgressPercentage = 1;
-
-                return true;
-            });
-
-            _vm.Scheduler.AddItem("Test #6", (item, cancellationToken) =>
-            {
-
-                while (item.ProgressPercentage < 1)
-                {
-                    Thread.Sleep(rand.Next(10, 50));
-
-                    if (cancellationToken.IsCancellationRequested)
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                    item.ProgressPercentage += rand.NextDouble() * (.01 - .0001) + .0001;
-                }
-
-                item.ProgressPercentage = 1;
-
-                return true;
-            });
-
+                    return true;
+                });
+            }
 
             DataContext = _vm;
 
@@ -192,7 +112,7 @@ namespace SubSearchUI
 
         private void Current_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            this.AddLogEntry(e.Exception.Message, ImageType.Error);
+            _logger.LogError(e.Exception, "General exception");
 
             e.Handled = true;
         }
@@ -245,7 +165,7 @@ namespace SubSearchUI
             }
             catch (Exception ex)
             {
-                AddLogEntry(ex.Message, ImageType.Error);
+                _logger.LogError(ex, "Exception in TvFolders_SelectedItemChanged()");
             }
         }
 
@@ -288,39 +208,31 @@ namespace SubSearchUI
             }
         }
 
-        public enum ImageType { OK, Info, Warning, Error };
+        public void AddLogEntry(Exception ex, string message, LogLevel logLevel)
+        {
+            AddLogEntry(message + $" ({ex.Message})", logLevel);
+        }
 
-        public void AddLogEntry(string message, ImageType image)
+        public void AddLogEntry(string message, LogLevel logLevel)
         {
             string imageSource = "/Images/";
 
-            switch (image)
+            switch (logLevel)
             {
-                case ImageType.Error:
+                case LogLevel.Error:
                     imageSource += "error.png";
                     break;
-                case ImageType.Info:
+                case LogLevel.Information:
                     imageSource += "info.png";
                     break;
-                case ImageType.Warning:
+                case LogLevel.Warning:
                     imageSource += "warning.png";
-                    break;
-                case ImageType.OK:
-                    imageSource += "ok.png";
                     break;
                 default:
                     imageSource = null;
                     break;
             }
-            /*
-            ListViewItem item = new ListViewItem();
-            item.Content = message;
-            item.Tag = new ListViewItemTag(message, image);
-            item.FontWeight = FontWeights.Normal;
 
-            lvLog.Items.Add(item);
-
-            */
             var logEntry = new ItemWithImage()
             {
                 ImageSource = imageSource,
@@ -362,14 +274,92 @@ namespace SubSearchUI
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            // Select the first item progmatically
-            var tvi = FindTviFromObjectRecursive(tvFolders, _vm.DirectoryList[0]);
 
-            if (tvi != null)
-                tvi.IsSelected = true;
+            try
+            {
+                List<IProviderPlugin> pluginInstances = new List<IProviderPlugin>();
 
-            // Start the background jobs scheduler
-            Dispatcher.InvokeAsync(new Action(BackgroundJobScheduler), DispatcherPriority.ApplicationIdle);
+                // Select the first item progmatically
+                var tvi = FindTviFromObjectRecursive(tvFolders, _vm.DirectoryList[0]);
+
+                if (tvi != null)
+                    tvi.IsSelected = true;
+
+                // Start the background jobs scheduler
+                Dispatcher.InvokeAsync(new Action(BackgroundJobScheduler), DispatcherPriority.ApplicationIdle);
+
+                // Load the plugins              
+                foreach (Plugin pluginInfo in _appSettings.Plugins)
+                {
+                    try
+                    {
+                        _vm.StatusText = $"Loading provider plugin {pluginInfo.Name} ({pluginInfo.File})...";
+
+                        var loader = Assembly.LoadFrom(pluginInfo.File);
+                        var providerPluginType = loader.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault();
+                        var pluginInterface = ActivatorUtilities.CreateInstance(_services, providerPluginType) as IProviderPlugin;
+
+                        _vm.StatusText = $"Loaded plugin {pluginInfo.Name}. Initializing in background...";
+                        _logger.LogDebug($"Plugin {pluginInfo.Name} loaded. Adding initializer to scheduler.");
+
+                        _vm.Scheduler.AddItem($"Initializing plugin ({pluginInfo.Name})", (queueItem, cancellation) =>
+                         {
+                             try
+                             {
+                                 _logger.LogDebug($"Plugin {pluginInfo.Name} initialization scheduled for execution.");
+                                 pluginInterface.Init();
+                                 _logger.LogDebug($"Plugin {pluginInfo.Name} initialization complete.");
+
+                                 pluginInfo.Interface = pluginInterface as IProviderPlugin;
+
+                                 // Update status
+                                 var settingsUpdater = _services.GetRequiredService<IWritableOptions<AppSettings>>();
+
+                                 settingsUpdater.Update(o =>
+                                 {
+                                     o.Plugins = _appSettings.Plugins;
+                                 });
+
+                                 _appSettings = settingsUpdater.Value;
+
+                                 _logger.LogDebug($"Plugin {pluginInfo.Name} successfully loaded.");
+                                 return true;
+                             }
+                             catch (Exception ex)
+                             {
+                                 _logger.LogDebug(ex, $"Plugin {pluginInfo.Name} initialization failed.");
+                                 // Exception should already be logged in the provider, so no need to log it a second time here. Return false to indicate failure.
+                                 return false;
+                             }
+                         },
+                         (queueItem) =>
+                         {
+                             int x = 10;
+                             _vm.StatusText = $"Done initializing plugin {pluginInfo.Name}. Waiting for {x} additional plugins...";
+                         });
+
+                        // Initialize the plugin
+                        //pluginInstance.Init();
+
+                        string ver = pluginInterface.Version();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Unable to log plugin ({pluginInfo.Name})");
+                    }
+                    
+
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception in Window_Loaded()");
+            }
+            finally
+            {
+                //Directory.SetCurrentDirectory(System.IO.Path.GetFullPath(currentDirectory));
+            }
+
         }
 
         private async void BackgroundJobScheduler()

@@ -1,5 +1,6 @@
 ﻿using Addic7ed.Addic7edApi.Models;
 using Microsoft.Extensions.Logging;
+using ProviderPluginTypes;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -14,14 +15,29 @@ namespace ProviderAddic7ed
         // Global variables
         private Addic7ed.Addic7edApi.Api _api;
         private List<TvShow> _tvShows;
+        private ILogger<IProviderPlugin> _logger;
 
+        public ProviderPlugin(ILogger<ProviderPlugin> logger)
+        {
+            // Future versions may have additional dependencies injected
+            _logger = logger;
+        }
         public void Init()
         {
-            // Create an API instance
-            _api = new Addic7ed.Addic7edApi.Api();
+            try
+            {
+                // Create an API instance
+                _api = new Addic7ed.Addic7edApi.Api();
 
-            // Get the list of all TV shows
-            _tvShows = _api.GetShows().Result;
+                // Get the list of all TV shows
+                _tvShows = _api.GetShows().Result;
+                
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,$"Exception in SearchAddic7ed - Init()");
+                throw;
+            }
         }
 
         public void Unload()
@@ -39,7 +55,7 @@ namespace ProviderAddic7ed
             throw new NotImplementedException();
         }
 
-        public async Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(ILogger logger, string showName, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos)
+        public async Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(string showName, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos)
         {
             List<DownloadedSubtitle> downloadedSubs = new List<DownloadedSubtitle>();
 
@@ -47,7 +63,7 @@ namespace ProviderAddic7ed
             {
                 if (!_tvShows.Any())
                 {
-                    logger.LogInformation("SearchAddic7ed(): No TV shows available.");
+                    _logger.LogInformation("SearchAddic7ed(): No TV shows available.");
                 }
                 else
                 {
@@ -56,7 +72,7 @@ namespace ProviderAddic7ed
 
                     if (myShow == null)
                     {
-                        logger.LogInformation($"SearchAddic7ed(): TV show specified ({showName}) was not in the list of available shows.");
+                        _logger.LogInformation($"SearchAddic7ed(): TV show specified ({showName}) was not in the list of available shows.");
                     }
                     else
                     {
@@ -65,7 +81,7 @@ namespace ProviderAddic7ed
 
                         if (!eps.Any())
                         {
-                            logger.LogInformation($"SearchAddic7ed(): No episodes for season ({seasonNbr}) were available.");
+                            _logger.LogInformation($"SearchAddic7ed(): No episodes for season ({seasonNbr}) were available.");
                         }
                         else
                         {
@@ -74,7 +90,7 @@ namespace ProviderAddic7ed
 
                             if (myEp == null)
                             {
-                                logger.LogInformation($"SearchAddic7ed(): No subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available.");
+                                _logger.LogInformation($"SearchAddic7ed(): No subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available.");
                             }
                             else
                             {
@@ -85,7 +101,7 @@ namespace ProviderAddic7ed
 
                                     if (found == null)
                                     {
-                                        logger.LogInformation($"SearchAddic7ed(): Subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available, not in the language specified ({language})");
+                                        _logger.LogInformation($"SearchAddic7ed(): Subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available, not in the language specified ({language})");
                                     }
                                     else
                                     {
@@ -93,7 +109,7 @@ namespace ProviderAddic7ed
 
                                         downloadedSubs.Add(new DownloadedSubtitle() { Contents = downloadedSub.Stream, CultureInfo = language });
 
-                                        logger.LogInformation($"SearchAddic7ed(): Successfully retrieved subtitles for season ({seasonNbr}) episode ({episodeNbr}) in {language}");
+                                        _logger.LogInformation($"SearchAddic7ed(): Successfully retrieved subtitles for season ({seasonNbr}) episode ({episodeNbr}) in {language}");
                                     }
                                 }
 
@@ -104,7 +120,7 @@ namespace ProviderAddic7ed
             }
             catch (Exception ex)
             {
-                logger.LogError($"Exception in SearchAddic7ed(): {ex.Message}");
+                _logger.LogError(ex, $"Exception in SearchAddic7ed(): SearchSubtitlesForTVAsync()");
                 throw;
             }
 

@@ -2,16 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="0.9.9.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\ProviderPluginTypes\ProviderPluginTypes.csproj" />
-  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">

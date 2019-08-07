@@ -1,7 +1,11 @@
 ﻿using GalaSoft.MvvmLight.Ioc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.AspNetCore;
 using SubSearchUI.Models;
+using SubSearchUI.Services.Concrete;
 using SubSearchUI.Services.Extensions;
 using SubSearchUI.ViewModels;
 using SubSearchUI.Views;
@@ -44,19 +48,34 @@ namespace SubSearchUI
 
             var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
 
+            //serviceCollection.AddSingleton<ILoggerFactory>(loggerFactory);
+
             mainWindow.Show();
         }
 
         private void ConfigureServices(IServiceCollection services)
         {
             // Each window goes into the DI container so they can also have dependencies injected into them
-            services.AddTransient(typeof(MainWindow));
+            services.AddSingleton(typeof(MainWindow));
             services.AddTransient(typeof(PreferencesWindow));
 
             // Configuration & writable options
             services.AddSingleton(x => _config);
             //services.Configure<AppSettings>(_config.GetSection(nameof(AppSettings)));
             services.ConfigureWritable<AppSettings>(_config.GetSection(nameof(AppSettings)));
+
+            // Create & inject logger
+            // TODO: Configure logging level later
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.MainWindowLogSink()
+                .CreateLogger();
+
+            var loggerFactory = new SerilogLoggerFactory(Log.Logger);
+
+            services.AddSingleton<ILoggerFactory>(loggerFactory);
+            services.AddLogging(x => x.AddSerilog());
+
         }
     }
 }
