@@ -4,11 +4,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SubSearchUI.Views"
+        xmlns:converters="clr-namespace:SubSearchUI.Models.Converters"
         mc:Ignorable="d"
         Title="Preferences" Height="300" Width="400"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         Loaded="Window_Loaded">
+    <Window.Resources>
+        <converters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -42,15 +46,15 @@
             </TabItem>
             <TabItem Header="Plugins">
                 <Grid>
-                    <ListView x:Name="lvPlugins" ItemsSource="{Binding Path=PluginList, Mode=TwoWay}">
+                    <ListView x:Name="lvPlugins" ItemsSource="{Binding Path=PluginList}">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Name}"  />
                                 <GridViewColumn Header="File" DisplayMemberBinding="{Binding File}" />
-                                <GridViewColumn Header="Loaded?">
+                                <GridViewColumn Header="Status">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <CheckBox IsChecked="{Binding IsLoaded}" />
+                                            <TextBlock Text="{Binding Status, Converter={StaticResource EnumDescriptionConverter}}" />
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>

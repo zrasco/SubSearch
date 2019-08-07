@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
+using GalaSoft.MvvmLight;
 using Newtonsoft.Json;
 using ProviderPluginTypes;
 using SubSearchUI.Services.Abstract;
@@ -13,22 +14,8 @@ namespace SubSearchUI
     {
         public string Name { get; set; }
         public string File { get; set; }
-
-        [JsonIgnore]
-        [JsonProperty(Required = Required.Default)]
-        public IProviderPlugin Interface { get; set; } = null;
-        [JsonIgnore]
-        [JsonProperty(Required = Required.Default)]
-        public bool Loaded {
-            get
-            {
-                if (Interface == null)
-                    return false;
-                else
-                    return true;
-            }
-        }
     }
+
     public class AppSettings
     {
         public AppSettings()

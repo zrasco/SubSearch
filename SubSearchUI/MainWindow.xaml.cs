@@ -41,33 +41,37 @@ namespace SubSearchUI
     public partial class MainWindow : Window
     {
         private AppSettings _appSettings;
+        private ObservableCollection<PluginStatus> _pluginStatus;
         private readonly MainWindowViewModel _vm;
         private readonly IServiceProvider _services;
         private readonly ILogger<MainWindow> _logger;
-
-
-        //public event Action<string, LogLevel> LoggingEventNormal;
-        //public event Action<Exception, LogLevel> LoggingEventException;
+        private readonly IList<CultureInfo> _allCultureInfos;
 
         void QueueItemStatusChangeEventHandler(QueueItem item)
         {
             lvQueue.ScrollIntoView(item);
         }
 
-        public MainWindow(IServiceProvider services, IWritableOptions<AppSettings> settings, ILogger<MainWindow> logger)
+        public MainWindow(  IServiceProvider services,
+                            IWritableOptions<AppSettings> settings,
+                            ILogger<MainWindow> logger,
+                            IList<CultureInfo> allCultureInfos,
+                            ObservableCollection<PluginStatus> pluginStatus)
         {
             InitializeComponent();
 
+            _allCultureInfos = allCultureInfos;
             _logger = logger;
             _appSettings = settings.Value;
             _vm = new MainWindowViewModel(QueueItemStatusChangeEventHandler);
             _services = services;
+            _pluginStatus = pluginStatus;
 
             Application.Current.DispatcherUnhandledException += new DispatcherUnhandledExceptionEventHandler(Current_DispatcherUnhandledException);
 
-            Random rand = new Random();
-
             // Add test items to queue
+            Random rand = new Random();
+            
             for (int x = 1; x <= 1; x++)
             {
                 _vm.Scheduler.AddItem($"Test #{x}", (item, cancellationToken) =>
@@ -191,7 +195,7 @@ namespace SubSearchUI
 
                     // Determine whether this video has subtitles
                     _appSettings = _services.GetRequiredService<IWritableOptions<AppSettings>>().Value;
-                    fileItem.GenerateSubtitleInfo(_appSettings.DefaultLanguage);
+                    fileItem.GenerateSubtitleInfo(_appSettings.DefaultLanguage, _allCultureInfos);
 
                     _vm.FileList.Add(fileItem);
                 }
@@ -277,8 +281,6 @@ namespace SubSearchUI
 
             try
             {
-                List<IProviderPlugin> pluginInstances = new List<IProviderPlugin>();
-
                 // Select the first item progmatically
                 var tvi = FindTviFromObjectRecursive(tvFolders, _vm.DirectoryList[0]);
 
@@ -288,68 +290,8 @@ namespace SubSearchUI
                 // Start the background jobs scheduler
                 Dispatcher.InvokeAsync(new Action(BackgroundJobScheduler), DispatcherPriority.ApplicationIdle);
 
-                // Load the plugins              
-                foreach (Plugin pluginInfo in _appSettings.Plugins)
-                {
-                    try
-                    {
-                        _vm.StatusText = $"Loading provider plugin {pluginInfo.Name} ({pluginInfo.File})...";
-
-                        var loader = Assembly.LoadFrom(pluginInfo.File);
-                        var providerPluginType = loader.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault();
-                        var pluginInterface = ActivatorUtilities.CreateInstance(_services, providerPluginType) as IProviderPlugin;
-
-                        _vm.StatusText = $"Loaded plugin {pluginInfo.Name}. Initializing in background...";
-                        _logger.LogDebug($"Plugin {pluginInfo.Name} loaded. Adding initializer to scheduler.");
-
-                        _vm.Scheduler.AddItem($"Initializing plugin ({pluginInfo.Name})", (queueItem, cancellation) =>
-                         {
-                             try
-                             {
-                                 _logger.LogDebug($"Plugin {pluginInfo.Name} initialization scheduled for execution.");
-                                 pluginInterface.Init();
-                                 _logger.LogDebug($"Plugin {pluginInfo.Name} initialization complete.");
-
-                                 pluginInfo.Interface = pluginInterface as IProviderPlugin;
-
-                                 // Update status
-                                 var settingsUpdater = _services.GetRequiredService<IWritableOptions<AppSettings>>();
-
-                                 settingsUpdater.Update(o =>
-                                 {
-                                     o.Plugins = _appSettings.Plugins;
-                                 });
-
-                                 _appSettings = settingsUpdater.Value;
-
-                                 _logger.LogDebug($"Plugin {pluginInfo.Name} successfully loaded.");
-                                 return true;
-                             }
-                             catch (Exception ex)
-                             {
-                                 _logger.LogDebug(ex, $"Plugin {pluginInfo.Name} initialization failed.");
-                                 // Exception should already be logged in the provider, so no need to log it a second time here. Return false to indicate failure.
-                                 return false;
-                             }
-                         },
-                         (queueItem) =>
-                         {
-                             int x = 10;
-                             _vm.StatusText = $"Done initializing plugin {pluginInfo.Name}. Waiting for {x} additional plugins...";
-                         });
-
-                        // Initialize the plugin
-                        //pluginInstance.Init();
-
-                        string ver = pluginInterface.Version();
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, $"Unable to log plugin ({pluginInfo.Name})");
-                    }
-                    
-
-                }
+                // Load the plugins
+                LoadPlugins();
             }
             catch (Exception ex)
             {
@@ -359,7 +301,84 @@ namespace SubSearchUI
             {
                 //Directory.SetCurrentDirectory(System.IO.Path.GetFullPath(currentDirectory));
             }
+        }
 
+        private void LoadPlugins()
+        {
+            _pluginStatus.Clear();
+
+            // Load the plugins              
+            foreach (Plugin pluginInfo in _appSettings.Plugins)
+            {
+                try
+                {
+                    if (_pluginStatus.Where(x => x.Name == pluginInfo.Name).FirstOrDefault() != null)
+                    {
+                        // Can't have more than 1 plugin with the same name in the configuration
+                        _vm.StatusText = $"Skipping duplicate plugin {pluginInfo.Name}.";
+                        _logger.LogWarning($"Duplicate Plugin {pluginInfo.Name} was skipped. Plugins must have unique names.");
+                    }
+                    else
+                    {
+                        // Add to global list
+                        _pluginStatus.Add(new PluginStatus(pluginInfo));
+
+                        // Get the entry we just added
+                        PluginStatus pluginStatus = _pluginStatus.Where(x => x.Name == pluginInfo.Name).FirstOrDefault();
+
+                        _vm.StatusText = $"Loading provider plugin {pluginInfo.Name} ({pluginInfo.File})...";
+
+                        var loader = Assembly.LoadFrom(pluginInfo.File);
+                        var providerPluginType = loader.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault();
+                        pluginStatus.Interface = ActivatorUtilities.CreateInstance(_services, providerPluginType) as IProviderPlugin;
+
+                        _vm.StatusText = $"Loaded plugin {pluginInfo.Name}. Initializing in background...";
+                        _logger.LogDebug($"Plugin {pluginInfo.Name} loaded. Adding initializer to scheduler.");
+                        pluginStatus.Status = PluginLoadStatus.Scheduled;
+
+                        _vm.Scheduler.AddItem($"Initializing plugin ({pluginInfo.Name})", (queueItem, cancellation) =>
+                        {
+                            try
+                            {
+                                // Change the status from the UI thread when it gets around to it
+                                Dispatcher.BeginInvoke(() =>
+                                {
+                                    pluginStatus.Status = PluginLoadStatus.Loading;
+                                }, DispatcherPriority.ApplicationIdle);
+
+                                _logger.LogDebug($"Plugin {pluginInfo.Name} initialization scheduled for execution.");
+
+                                pluginStatus.Interface.Init();
+
+                                _logger.LogDebug($"Plugin {pluginInfo.Name} initialization complete.");
+
+                                _logger.LogDebug($"Plugin {pluginInfo.Name} successfully loaded.");
+                                return true;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogDebug(ex, $"Plugin {pluginInfo.Name} initialization failed.");
+                                pluginStatus.Interface = null;
+                                // Exception should already be logged in the provider, so no need to log it a second time here. Return false to indicate failure.
+                                return false;
+                            }
+                        },
+                         (queueItem) =>
+                         {
+                             int x = 10;
+                             pluginStatus.Status = PluginLoadStatus.Loaded;
+                             _vm.StatusText = $"Done initializing plugin {pluginInfo.Name}. Waiting for {x} additional plugins...";
+                         });
+
+                        string ver = pluginStatus.Interface.Version();
+                    }
+                    
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Unable to log plugin ({pluginInfo.Name})");
+                }
+            }
         }
 
         private async void BackgroundJobScheduler()

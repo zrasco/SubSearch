@@ -14,14 +14,14 @@ namespace SubSearchUI.Models.Converters
     [ValueConversion(typeof(Enum), typeof(string))]
     public class EnumDescriptionConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value == null) return DependencyProperty.UnsetValue;
 
             return GetDescription((Enum)value);
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return value;
         }

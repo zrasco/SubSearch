@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ProviderAddic7ed
@@ -24,6 +25,10 @@ namespace ProviderAddic7ed
         }
         public void Init()
         {
+            // TODO: Replace this
+            Thread.Sleep(10000);
+            return;
+
             try
             {
                 // Create an API instance

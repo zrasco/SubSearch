@@ -7,6 +7,7 @@ using SubSearchUI.ViewModels;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -29,7 +30,9 @@ namespace SubSearchUI.Views
         private readonly PreferencesViewModel _vm;
         private readonly IWritableOptions<AppSettings> _appSettingsOpt;
 
-        public PreferencesWindow(IWritableOptions<AppSettings> appSettingsOpt)
+        public PreferencesWindow(   IWritableOptions<AppSettings> appSettingsOpt,
+                                    IList<CultureInfo> allCultureInfos,
+                                    ObservableCollection<PluginStatus> pluginStatus)
         {
             InitializeComponent();
 
@@ -40,9 +43,11 @@ namespace SubSearchUI.Views
             _vm.RootDirectory = _appSettingsOpt.Value.RootDirectory;
 
             // Language list
-            _vm.LanguageList = (App.Current.Properties["CultureInfo"] as CultureInfo[]).OrderBy(x => x.DisplayName).ToList();
+            _vm.LanguageList = allCultureInfos;
 
-            var defaultLang = (App.Current.Properties["CultureInfo"] as CultureInfo[]).Where(x => x.DisplayName == _appSettingsOpt.Value.DefaultLanguage);
+            // Plugin status
+            _vm.PluginList = pluginStatus;
+
             DataContext = _vm;
         }
         private void BtnBrowse_Click(object sender, RoutedEventArgs e)
@@ -53,7 +58,6 @@ namespace SubSearchUI.Views
             {
                 _vm.RootDirectory = dlg.FileName;
             }
-                
         }
 
         private void BtnOK_Click(object sender, RoutedEventArgs e)
@@ -78,11 +82,6 @@ namespace SubSearchUI.Views
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             _vm.SelectedLanguage = _vm.LanguageList.Where(x => x.DisplayName == _appSettingsOpt.Value.DefaultLanguage).FirstOrDefault();
-
-            foreach (var plugin in _appSettingsOpt.Value.Plugins)
-            {
-                _vm.PluginList.Add(new PluginInfo() { File = plugin.File, Name = plugin.Name });
-            }
         }
     }
 }

@@ -12,6 +12,7 @@ using SubSearchUI.Views;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Configuration;
 using System.Data;
 using System.Globalization;
@@ -43,12 +44,7 @@ namespace SubSearchUI
 
             _serviceProvider = serviceCollection.BuildServiceProvider();
 
-            // Set up global variable for culture infos
-            Current.Properties["CultureInfo"] = CultureInfo.GetCultures(CultureTypes.AllCultures & ~CultureTypes.NeutralCultures);
-
             var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-
-            //serviceCollection.AddSingleton<ILoggerFactory>(loggerFactory);
 
             mainWindow.Show();
         }
@@ -61,7 +57,6 @@ namespace SubSearchUI
 
             // Configuration & writable options
             services.AddSingleton(x => _config);
-            //services.Configure<AppSettings>(_config.GetSection(nameof(AppSettings)));
             services.ConfigureWritable<AppSettings>(_config.GetSection(nameof(AppSettings)));
 
             // Create & inject logger
@@ -71,11 +66,14 @@ namespace SubSearchUI
                 .WriteTo.MainWindowLogSink()
                 .CreateLogger();
 
-            var loggerFactory = new SerilogLoggerFactory(Log.Logger);
-
-            services.AddSingleton<ILoggerFactory>(loggerFactory);
+            services.AddSingleton<ILoggerFactory>(new SerilogLoggerFactory(Log.Logger));
             services.AddLogging(x => x.AddSerilog());
 
+            // Add culture info
+            services.AddSingleton<IList<CultureInfo>>(CultureInfo.GetCultures(CultureTypes.AllCultures & ~CultureTypes.NeutralCultures).ToList());
+
+            // Add plugin state info
+            services.AddSingleton<ObservableCollection<PluginStatus>>(new ObservableCollection<PluginStatus>());
         }
     }
 }

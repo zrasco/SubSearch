@@ -137,11 +137,10 @@ namespace SubSearchUI.Models
             }
         }
 
-        public void GenerateSubtitleInfo(string defaultLanguage)
+        public void GenerateSubtitleInfo(string defaultLanguage, IList<CultureInfo> allCultureInfos)
         {
             string fileBase = $"{Path.GetDirectoryName(FullPath)}\\{Path.GetFileNameWithoutExtension(FullPath)}";
-            var cultureInfos = (App.Current.Properties["CultureInfo"] as CultureInfo[]);
-            CultureInfo defaultCultureInfo = cultureInfos.Where(x => x.DisplayName == defaultLanguage).FirstOrDefault();
+            CultureInfo defaultCultureInfo = allCultureInfos.Where(x => x.DisplayName == defaultLanguage).FirstOrDefault();
 
             if (defaultCultureInfo == null)
             {

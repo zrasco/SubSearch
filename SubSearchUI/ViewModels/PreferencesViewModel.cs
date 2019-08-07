@@ -1,5 +1,6 @@
 ﻿using GalaSoft.MvvmLight;
 using Microsoft.Extensions.Options;
+using SubSearchUI.Models;
 using SubSearchUI.Services.Abstract;
 using System;
 using System.Collections.Generic;
@@ -10,98 +11,6 @@ using System.Text;
 
 namespace SubSearchUI.ViewModels
 {
-    public class PluginInfo : ObservableObject
-    {
-        /// <summary>
-        /// The <see cref="Name" /> property's name.
-        /// </summary>
-        public const string NamePropertyName = "Name";
-
-        private string _name;
-
-        /// <summary>
-        /// Sets and gets the Name property.
-        /// Changes to that property's value raise the PropertyChanged event. 
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                return _name;
-            }
-
-            set
-            {
-                if (_name == value)
-                {
-                    return;
-                }
-
-                _name = value;
-                RaisePropertyChanged(NamePropertyName);
-            }
-        }
-
-        /// <summary>
-        /// The <see cref="File" /> property's name.
-        /// </summary>
-        public const string FilePropertyName = "File";
-
-        private string _file;
-
-        /// <summary>
-        /// Sets and gets the File property.
-        /// Changes to that property's value raise the PropertyChanged event. 
-        /// </summary>
-        public string File
-        {
-            get
-            {
-                return _file;
-            }
-
-            set
-            {
-                if (_file == value)
-                {
-                    return;
-                }
-
-                _file = value;
-                RaisePropertyChanged(FilePropertyName);
-            }
-        }
-
-        /// <summary>
-        /// The <see cref="IsLoaded" /> property's name.
-        /// </summary>
-        public const string IsLoadedPropertyName = "IsLoaded";
-
-        private bool _isLoaded = false;
-
-        /// <summary>
-        /// Sets and gets the IsLoaded property.
-        /// Changes to that property's value raise the PropertyChanged event. 
-        /// </summary>
-        public bool IsLoaded
-        {
-            get
-            {
-                return _isLoaded;
-            }
-
-            set
-            {
-                if (_isLoaded == value)
-                {
-                    return;
-                }
-
-                _isLoaded = value;
-                RaisePropertyChanged(IsLoadedPropertyName);
-            }
-        }
-    }
     public class PreferencesViewModel : ViewModelBase
     {
         /// <summary>
@@ -138,13 +47,13 @@ namespace SubSearchUI.ViewModels
         /// </summary>
         public const string LanguageListPropertyName = "LanguageList";
 
-        private List<CultureInfo> _languageList;
+        private IList<CultureInfo> _languageList;
 
         /// <summary>
         /// Sets and gets the LanguageList property.
         /// Changes to that property's value raise the PropertyChanged event. 
         /// </summary>
-        public List<CultureInfo> LanguageList
+        public IList<CultureInfo> LanguageList
         {
             get
             {
@@ -198,13 +107,13 @@ namespace SubSearchUI.ViewModels
         /// </summary>
         public const string PluginListPropertyName = "PluginList";
 
-        private ObservableCollection<PluginInfo> _pluginList;
+        private ObservableCollection<PluginStatus> _pluginList;
 
         /// <summary>
         /// Sets and gets the PluginList property.
         /// Changes to that property's value raise the PropertyChanged event. 
         /// </summary>
-        public ObservableCollection<PluginInfo> PluginList
+        public ObservableCollection<PluginStatus> PluginList
         {
             get
             {
@@ -225,7 +134,6 @@ namespace SubSearchUI.ViewModels
 
         public PreferencesViewModel()
         {
-            PluginList = new ObservableCollection<PluginInfo>();
         }
     }
 }
