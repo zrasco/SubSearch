@@ -63,6 +63,41 @@
                     </ListView>
                 </Grid>
             </TabItem>
+            <TabItem Header="Regex (TV)">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Sample text:"/>
+                        <TextBox x:Name="txtBoxSampleText" MinWidth="200" Width="Auto" ToolTip="$1 - Series, $2 - Season #, $3 - Ep #, $4 - Date"
+                                 Text="{Binding Path=SampleText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 TextChanged="TxtBoxSampleText_TextChanged"/>
+                    </StackPanel>
+                    <ListView Grid.Row="1" x:Name="lvRegex" ItemsSource="{Binding Path=RegExList}">
+                        <ListView.Resources>
+                            <Style TargetType="{x:Type ListViewItem}">
+                                <Setter Property="Background" Value="{Binding Path=BGColor}"/>
+                                <Setter Property="ToolTip" Value="{Binding Path=TooltipText}"/>
+                            </Style>
+                        </ListView.Resources>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Expression" DisplayMemberBinding="{Binding Expression}"/>
+                                <GridViewColumn Header="Series" DisplayMemberBinding="{Binding Series}" />
+                                <GridViewColumn Header="Season #" DisplayMemberBinding="{Binding SeasonNbr}" />
+                                <GridViewColumn Header="Episode #" DisplayMemberBinding="{Binding EpNbr}" />
+                                <GridViewColumn Header="Title" DisplayMemberBinding="{Binding Title}" />
+                                <GridViewColumn Header="Quality" DisplayMemberBinding="{Binding Quality}" />
+                                <GridViewColumn Header="Date" DisplayMemberBinding="{Binding Date}" />
+
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </TabItem>
         </TabControl>
             <StackPanel Grid.Row="1" HorizontalAlignment="Center" Orientation="Horizontal">
             <Button Margin="10, 10, 2, 10" Padding="3" Name="btnOK" Click="BtnOK_Click" IsDefault="True">OK</Button>

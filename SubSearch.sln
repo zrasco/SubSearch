@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProviderAddic7ed", "Provide
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Provider plugins", "Provider plugins", "{3E9CBFC1-8041-4005-9F9C-F541128B71A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProviderPluginTypes", "ProviderPluginTypes\ProviderPluginTypes.csproj", "{EEA60179-7527-4175-84F4-1E259E5E06BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProviderPluginTypes", "ProviderPluginTypes\ProviderPluginTypes.csproj", "{EEA60179-7527-4175-84F4-1E259E5E06BF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -27,6 +27,7 @@
                     <Setter Property="Header" Value="{Binding Displayname}"/>
                     <Setter Property="Command" Value="{Binding Command}"/>
                     <Setter Property="CommandParameter" Value="{Binding CommandParameter}"/>
+                    <Setter Property="Tag" Value="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}}"/>
                 </Style>
             </ContextMenu.ItemContainerStyle>
         </ContextMenu>

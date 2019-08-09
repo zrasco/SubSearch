@@ -17,6 +17,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
@@ -303,6 +304,7 @@ namespace SubSearchUI
             }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void LoadPlugins()
         {
             _pluginStatus.Clear();
@@ -328,13 +330,68 @@ namespace SubSearchUI
 
                         _vm.StatusText = $"Loading provider plugin {pluginInfo.Name} ({pluginInfo.File})...";
 
-                        var loader = Assembly.LoadFrom(pluginInfo.File);
-                        var providerPluginType = loader.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault();
-                        pluginStatus.Interface = ActivatorUtilities.CreateInstance(_services, providerPluginType) as IProviderPlugin;
+                        // Load the .NET assembly & dependencies
+                        // TODO: Eventually add capability to use unloadable plugins. .NET Core 3.0 supports *some* of this but has issues with .NET dependency conflicts
+                        //
+                        // Code below was from the most recent attempt on 8/8/19. I was unable to get an instance of the plugin object because the plugin had a different ILogger<T>
+                        // than the main program, even though the UI program and plugin have the exact same version.
+
+                        /*
+                         * #1
+                        var context = new CollectibleAssemblyLoadContext(pluginInfo.File);
+                        var pluginPath = Path.GetDirectoryName(pluginInfo.File);
+                        var assembly = context.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginInfo.File)));
+                        var assyTypes = assembly.GetTypes();
+                        */
+                        /*
+                         * #2
+                            var assembly = Assembly.LoadFrom(pluginInfo.File);
+                            var providerPluginType = assembly.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault();
+                        */
+                        /*
+                        var context = new CollectibleAssemblyLoadContext(pluginInfo.File);
+                        var pluginPath = Path.GetDirectoryName(pluginInfo.File);
+                        var assembly = context.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(pluginInfo.File)));
+                        var assyTypes = assembly.GetTypes();
+                        */
+
+                        //var assembly2 = Assembly.LoadFrom(pluginInfo.File);
+                        //var providerPluginType = assembly2.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault();
+
+
+                        // TODO: Temporarily put this until I figure out how to inject the ILogger dependency
+
+
+
+                        //var paramType = assembly.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault().GetTypeInfo().DeclaredConstructors.FirstOrDefault().GetParameters()[0].ParameterType;
+                        //var paramType2 = assembly2.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault().GetTypeInfo().DeclaredConstructors.FirstOrDefault().GetParameters()[0].ParameterType;
+
+                        //var svc2 = _services.GetService(paramType2);
+                        //var svc = _services.GetService(paramType);
+
+                        var assembly = Assembly.LoadFrom(pluginInfo.File);
+                        var providerPluginType = assembly.GetTypes().Where(x => x.Name == "ProviderPlugin").FirstOrDefault();
+
+                        // Find the first (and hopefully only) concrete class which implements IProviderPlugin in the assembly
+                        var assyTypes = assembly.GetTypes();
+
+                        for (int x = 0; x < assyTypes.Count() && pluginStatus.Interface == null; x++)
+                        {
+                            if (typeof(IProviderPlugin).IsAssignableFrom(assyTypes[x]))
+                                pluginStatus.Interface = ActivatorUtilities.CreateInstance(_services, assyTypes[x]) as IProviderPlugin;
+                        }
+
+                        if (pluginStatus.Interface == null)
+                        {
+                            // Error
+                            throw new Exception("Nothing in the plugin file implements IProviderPlugin");
+                        }
 
                         _vm.StatusText = $"Loaded plugin {pluginInfo.Name}. Initializing in background...";
                         _logger.LogDebug($"Plugin {pluginInfo.Name} loaded. Adding initializer to scheduler.");
                         pluginStatus.Status = PluginLoadStatus.Scheduled;
+
+                        //context.Unload();
 
                         _vm.Scheduler.AddItem($"Initializing plugin ({pluginInfo.Name})", (queueItem, cancellation) =>
                         {
@@ -372,7 +429,7 @@ namespace SubSearchUI
 
                         string ver = pluginStatus.Interface.Version();
                     }
-                    
+
                 }
                 catch (Exception ex)
                 {
