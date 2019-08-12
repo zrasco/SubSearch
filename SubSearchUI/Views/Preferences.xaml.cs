@@ -146,9 +146,7 @@ namespace SubSearchUI.Views
 
                 }
             }
-            // Re-evaluate each regular expression
-
-            
+            // Re-evaluate each regular expression            
         }
     }
 }

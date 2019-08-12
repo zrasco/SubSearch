@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.AspNetCore;
 using SubSearchUI.Models;
+using SubSearchUI.Services.Abstract;
 using SubSearchUI.Services.Concrete;
 using SubSearchUI.Services.Extensions;
 using SubSearchUI.ViewModels;
@@ -74,6 +75,9 @@ namespace SubSearchUI
 
             // Add plugin state info
             services.AddSingleton<ObservableCollection<PluginStatus>>(new ObservableCollection<PluginStatus>());
+
+            // Filename regex processor
+            services.AddTransient<IFilenameProcessor, FilenameProcessor>();
         }
     }
 }
