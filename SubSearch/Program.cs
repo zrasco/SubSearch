@@ -101,7 +101,7 @@ namespace SubSearch
 
                 if (!tvShows.Any())
                 {
-                    _logger.Information("SearchAddic7ed(): No TV shows available.");
+                     _logger.Information("SearchAddic7ed(): No TV shows available.");
                 }
                 else
                 {
