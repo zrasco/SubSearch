@@ -42,7 +42,6 @@ namespace SubSearchUI
     public partial class MainWindow : Window
     {
         private AppSettings _appSettings;
-        private ObservableCollection<PluginStatus> _pluginStatus;
         private readonly MainWindowViewModel _vm;
         private readonly IServiceProvider _services;
         private readonly ILogger<MainWindow> _logger;
@@ -57,16 +56,17 @@ namespace SubSearchUI
                             IWritableOptions<AppSettings> settings,
                             ILogger<MainWindow> logger,
                             IList<CultureInfo> allCultureInfos,
-                            ObservableCollection<PluginStatus> pluginStatus)
+                            ObservableCollection<PluginStatus> pluginStatus,
+                            IFilenameProcessor filenameProcessor)
         {
             InitializeComponent();
 
             _allCultureInfos = allCultureInfos;
             _logger = logger;
             _appSettings = settings.Value;
-            _vm = new MainWindowViewModel(QueueItemStatusChangeEventHandler);
+            _vm = new MainWindowViewModel(QueueItemStatusChangeEventHandler, filenameProcessor);
             _services = services;
-            _pluginStatus = pluginStatus;
+            _vm.PluginStatusList = pluginStatus;
 
             Application.Current.DispatcherUnhandledException += new DispatcherUnhandledExceptionEventHandler(Current_DispatcherUnhandledException);
 
@@ -307,14 +307,14 @@ namespace SubSearchUI
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void LoadPlugins()
         {
-            _pluginStatus.Clear();
+            _vm.PluginStatusList.Clear();
 
             // Load the plugins              
             foreach (Plugin pluginInfo in _appSettings.Plugins)
             {
                 try
                 {
-                    if (_pluginStatus.Where(x => x.Name == pluginInfo.Name).FirstOrDefault() != null)
+                    if (_vm.PluginStatusList.Where(x => x.Name == pluginInfo.Name).FirstOrDefault() != null)
                     {
                         // Can't have more than 1 plugin with the same name in the configuration
                         _vm.StatusText = $"Skipping duplicate plugin {pluginInfo.Name}.";
@@ -323,10 +323,10 @@ namespace SubSearchUI
                     else
                     {
                         // Add to global list
-                        _pluginStatus.Add(new PluginStatus(pluginInfo));
+                        _vm.PluginStatusList.Add(new PluginStatus(pluginInfo));
 
                         // Get the entry we just added
-                        PluginStatus pluginStatus = _pluginStatus.Where(x => x.Name == pluginInfo.Name).FirstOrDefault();
+                        PluginStatus pluginStatus = _vm.PluginStatusList.Where(x => x.Name == pluginInfo.Name).FirstOrDefault();
 
                         _vm.StatusText = $"Loading provider plugin {pluginInfo.Name} ({pluginInfo.File})...";
 

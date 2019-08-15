@@ -1,10 +1,14 @@
 ﻿using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
+using ProviderPluginTypes;
 using SubSearchUI.Models;
+using SubSearchUI.Services.Abstract;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
@@ -218,8 +222,30 @@ namespace SubSearchUI.ViewModels
             }
         }
 
-        private void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
+        private async void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
         {
+            var fileInfo = _filenameProcessor.GetTVShowInfo(parameter.Filebase);
+
+            // Add subtitle download to queue
+            Scheduler.AddItem($"Downloading {parameter.Filename}...", (item, cancellation) =>
+            {
+                foreach (var pluginStatus in PluginStatusList)
+                {
+                    if (pluginStatus.Status == PluginLoadStatus.Loaded)
+                    {
+                        if ((pluginStatus.Interface.ProviderCapabilities() & ProviderPluginTypes.SearchCapabilities.TV) == ProviderPluginTypes.SearchCapabilities.TV)
+                        {
+                            IList<DownloadedSubtitle> downloadedSubs = new List<DownloadedSubtitle>();
+
+                            downloadedSubs = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season, fileInfo.EpisodeNbr, new List<CultureInfo>() { parameter.CultureInfo }).Result;
+
+                            // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
+
+                        }
+                    }
+                }
+                return true;
+            });
             MessageBox.Show($"Downloading subtitle '{parameter.FullPath}'...");
         }
 
@@ -443,12 +469,46 @@ namespace SubSearchUI.ViewModels
             }
         }
 
-        public MainWindowViewModel(Action<QueueItem> QueueItemFinishedEventHandler)
+        /// <summary>
+        /// The <see cref="PluginStatusList" /> property's name.
+        /// </summary>
+        public const string PluginStatusListPropertyName = "PluginStatusList";
+
+        private ObservableCollection<PluginStatus> pluginStatusList;
+
+        /// <summary>
+        /// Sets and gets the PluginStatusList property.
+        /// Changes to that property's value raise the PropertyChanged event. 
+        /// </summary>
+        public ObservableCollection<PluginStatus> PluginStatusList
+        {
+            get
+            {
+                return pluginStatusList;;
+            }
+
+            set
+            {
+                if (pluginStatusList == value)
+                {
+                    return;
+                }
+
+                pluginStatusList = value;
+                RaisePropertyChanged(PluginStatusListPropertyName);
+            }
+        }
+
+        private readonly IFilenameProcessor _filenameProcessor;
+
+        public MainWindowViewModel(Action<QueueItem> QueueItemFinishedEventHandler, IFilenameProcessor filenameProcessor)
         {
             DirectoryList = new ObservableCollection<TVDirectoryItem>();
             FileList = new ObservableCollection<VideoFileItem>();
             LogItems = new ObservableCollection<ItemWithImage>();
             Scheduler = new Scheduler(QueueItemFinishedEventHandler);
+
+            _filenameProcessor = filenameProcessor;
         }
     }
 }

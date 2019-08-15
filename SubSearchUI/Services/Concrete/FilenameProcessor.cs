@@ -41,7 +41,7 @@ namespace SubSearchUI.Services.Concrete
             TVShowValue retval = new TVShowValue();
             List<string> expressionList;
 
-            if (RegExExpression == null)
+            if (RegExExpression != null)
                 expressionList = new List<string>() { RegExExpression };
             else
                 expressionList = _appSettings.RegExTV;
@@ -50,9 +50,9 @@ namespace SubSearchUI.Services.Concrete
             {
                 Regex r = new Regex(expression);
 
-                Match m = r.Match(expression);
+                Match m = r.Match(filename);
 
-                if (m.Captures.Count >= groupRefEntries.Length)
+                if (m.Groups.Count >= groupRefEntries.Length)
                 {
                     GroupCollection gc = m.Groups;
 

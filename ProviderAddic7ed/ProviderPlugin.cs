@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,6 +15,7 @@ namespace ProviderAddic7ed
 {
     public class ProviderPlugin : IProviderPlugin
     {
+        const string SHOWS_CACHE_FILENAME = "shows.tmp";
         // Global variables
         private Addic7ed.Addic7edApi.Api _api;
         private List<TvShow> _tvShows;
@@ -25,23 +28,48 @@ namespace ProviderAddic7ed
         }
         public void Init()
         {
-            // TODO: Replace this
-            Thread.Sleep(10000);
-            return;
+            Stream stream = null;
 
             try
             {
                 // Create an API instance
                 _api = new Addic7ed.Addic7edApi.Api();
 
-                // Get the list of all TV shows
-                _tvShows = _api.GetShows().Result;
+                IFormatter formatter = new BinaryFormatter();
+
+                if (File.Exists(SHOWS_CACHE_FILENAME))
+                {
+                    stream = new FileStream(SHOWS_CACHE_FILENAME, FileMode.Open, FileAccess.Read);
+
+                    _tvShows = (List<TvShow>)formatter.Deserialize(stream);
+
+                    stream.Close();
+
+                    _logger.LogDebug($"SearchAddic7ed - Show list read from {SHOWS_CACHE_FILENAME}");
+
+                }
+                else
+                {
+                    // Get the list of all TV shows
+                    _tvShows = _api.GetShows().Result;
+
+                    stream = new FileStream(SHOWS_CACHE_FILENAME, FileMode.Create, FileAccess.Write);
+                    formatter.Serialize(stream, _tvShows);
+                    stream.Close();
+
+                    _logger.LogDebug($"SearchAddic7ed - Show list downloaded and written to {SHOWS_CACHE_FILENAME}");
+                }
                 
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,$"Exception in SearchAddic7ed - Init()");
                 throw;
+            }
+            finally
+            {
+                if (stream != null)
+                    stream.Close();
             }
         }
 

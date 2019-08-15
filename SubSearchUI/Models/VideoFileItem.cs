@@ -13,6 +13,8 @@ namespace SubSearchUI.Models
 {
     public class SubtitleFileInfo
     {
+        public CultureInfo CultureInfo { get; set; }
+        public string Filebase { get; set; }
         public string FullPath { get; set; }
         public string Filename { get; set; }
         public bool Exists { get; set; }
@@ -151,12 +153,11 @@ namespace SubSearchUI.Models
             {
                 SubtitleFileList = new List<SubtitleFileInfo>();
 
-                SubtitleFileList.Add(new SubtitleFileInfo() { FullPath = fileBase + ".srt" });
-                SubtitleFileList.Add(new SubtitleFileInfo() { FullPath = fileBase + "." + defaultCultureInfo.TwoLetterISOLanguageName + ".srt" });
+                SubtitleFileList.Add(new SubtitleFileInfo() { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + ".srt" });
+                SubtitleFileList.Add(new SubtitleFileInfo() { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + "." + defaultCultureInfo.TwoLetterISOLanguageName + ".srt" });
 
                 if (defaultCultureInfo.TwoLetterISOLanguageName != defaultCultureInfo.Name)
-                    SubtitleFileList.Add(new SubtitleFileInfo() { FullPath = fileBase + "." + defaultCultureInfo.Name + ".srt" });
-
+                    SubtitleFileList.Add(new SubtitleFileInfo() { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + "." + defaultCultureInfo.Name + ".srt" });
 
                 foreach (var info in SubtitleFileList)
                 {
