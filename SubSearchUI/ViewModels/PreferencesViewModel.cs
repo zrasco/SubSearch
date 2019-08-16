@@ -283,6 +283,26 @@ namespace SubSearchUI.ViewModels
                 RaisePropertyChanged(TooltipTextPropertyName);
             }
         }
+
+        public void FillFrom(TVShowValue info)
+        {
+            Date = info.Date.ToString();
+            EpNbr = info.EpisodeNbr.ToString();
+            Series = info.Series;
+            Title = info.Title;
+            Quality = info.Quality;
+            SeasonNbr = info.Season.ToString();
+        }
+
+        public bool IsComplete()
+        {
+            return (!string.IsNullOrEmpty(Date) &&
+                !string.IsNullOrEmpty(EpNbr) &&
+                !string.IsNullOrEmpty(Series) &&
+                !string.IsNullOrEmpty(Title) &&
+                !string.IsNullOrEmpty(Quality) &&
+                !string.IsNullOrEmpty(SeasonNbr));
+        }
     }
     public class PreferencesViewModel : ViewModelBase
     {

@@ -224,6 +224,7 @@ namespace SubSearchUI.ViewModels
 
         private async void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
         {
+            // Extract the relevant info from the filename
             var fileInfo = _filenameProcessor.GetTVShowInfo(parameter.Filebase);
 
             // Add subtitle download to queue
@@ -231,22 +232,34 @@ namespace SubSearchUI.ViewModels
             {
                 foreach (var pluginStatus in PluginStatusList)
                 {
+                    // Cancel if needed
+                    cancellation.ThrowIfCancellationRequested();
+
                     if (pluginStatus.Status == PluginLoadStatus.Loaded)
                     {
-                        if ((pluginStatus.Interface.ProviderCapabilities() & ProviderPluginTypes.SearchCapabilities.TV) == ProviderPluginTypes.SearchCapabilities.TV)
+                        if ((pluginStatus.Interface.ProviderCapabilities() & SearchCapabilities.TV) == SearchCapabilities.TV)
                         {
                             IList<DownloadedSubtitle> downloadedSubs = new List<DownloadedSubtitle>();
 
                             downloadedSubs = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season, fileInfo.EpisodeNbr, new List<CultureInfo>() { parameter.CultureInfo }).Result;
 
-                            // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
+                            // Cancel if needed
+                            cancellation.ThrowIfCancellationRequested();
 
+                            // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
+                            using (FileStream fs = new FileStream(parameter.FullPath, FileMode.Create))
+                            {
+                                downloadedSubs[0].Contents.CopyTo(fs);
+                                downloadedSubs[0].Contents.Close();                                    
+                            }
+
+                            return true;
                         }
                     }
                 }
-                return true;
+
+                throw new Exception("Unable to find matching subtitle");
             });
-            MessageBox.Show($"Downloading subtitle '{parameter.FullPath}'...");
         }
 
         private bool CanExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)

@@ -20,16 +20,20 @@ namespace SubSearchUI.Services.Concrete
         const string QUALITY_STR = "quality";
         const string DATE_STR = "date";
 
-        GroupRefEntry[] groupRefEntries = new GroupRefEntry [] {
+        GroupRefEntry[] groupRefEntries = new GroupRefEntry[] {
             new GroupRefEntry() { Key = SERIES_STR, SetterAction = (o, input) => o.Series = input },
             new GroupRefEntry() { Key = SEASON_STR, SetterAction = (o, input) => o.Season = Int32.Parse(input) },
             new GroupRefEntry() { Key = EPISODE_STR, SetterAction = (o, input) => o.EpisodeNbr = Int32.Parse(input) },
             new GroupRefEntry() { Key = TITLE_STR, SetterAction = (o, input) => o.Title = input },
             new GroupRefEntry() { Key = QUALITY_STR, SetterAction = (o, input) => o.Quality = input },
-            new GroupRefEntry() { Key = DATE_STR, SetterAction = (o, input) => o.Date = Convert.ToDateTime(input) },
+            new GroupRefEntry() { Key = DATE_STR, SetterAction = (o, input) => {
+                if (DateTime.TryParse(input, out DateTime result))
+                    o.Date = result;
+            } },
         };
 
         private readonly AppSettings _appSettings;
+
 
         public FilenameProcessor(IWritableOptions<AppSettings> appSettings)
         {
@@ -58,8 +62,16 @@ namespace SubSearchUI.Services.Concrete
 
                     foreach (var grpRefEntry in groupRefEntries)
                     {
-                        if (m.Groups.ContainsKey(grpRefEntry.Key))
-                            grpRefEntry.SetterAction(retval, m.Groups[grpRefEntry.Key].Value.Trim());
+                        try
+                        {
+                            if (m.Groups.ContainsKey(grpRefEntry.Key))
+                                grpRefEntry.SetterAction(retval, m.Groups[grpRefEntry.Key].Value.Trim());
+                        }
+                        catch (Exception ex)
+                        {
+                            grpRefEntry.SetterAction(retval, null);
+                        }
+
                     }
                 }
             }

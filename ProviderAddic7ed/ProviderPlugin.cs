@@ -53,11 +53,19 @@ namespace ProviderAddic7ed
                     // Get the list of all TV shows
                     _tvShows = _api.GetShows().Result;
 
-                    stream = new FileStream(SHOWS_CACHE_FILENAME, FileMode.Create, FileAccess.Write);
-                    formatter.Serialize(stream, _tvShows);
-                    stream.Close();
+                    if (_tvShows.Any())
+                    {
+                        stream = new FileStream(SHOWS_CACHE_FILENAME, FileMode.Create, FileAccess.Write);
+                        formatter.Serialize(stream, _tvShows);
+                        stream.Close();
 
-                    _logger.LogDebug($"SearchAddic7ed - Show list downloaded and written to {SHOWS_CACHE_FILENAME}");
+                        _logger.LogDebug($"SearchAddic7ed - Show list downloaded and written to {SHOWS_CACHE_FILENAME}");
+                    }
+                    else
+                        _logger.LogWarning($"SearchAddic7ed - No TV shows on site!");
+
+
+
                 }
                 
             }
@@ -131,6 +139,10 @@ namespace ProviderAddic7ed
                                 {
                                     // Find our target subtitle. Grab the first english one by default
                                     var found = myEp.Subtitles.FirstOrDefault(x => x.Language == language.DisplayName);
+
+                                    // Try again using parent language
+                                    if (found == null)
+                                        found = myEp.Subtitles.FirstOrDefault(x => x.Language == language.Parent.DisplayName);
 
                                     if (found == null)
                                     {

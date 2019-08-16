@@ -18,7 +18,8 @@ namespace Addic7ed.Addic7edApi
 
         public async Task<string> GetShows()
         {
-            var html = await _httpClient.GetStringAsync(new Uri("/ajax_getShows.php", UriKind.Relative));
+            var html = await _httpClient.GetStringAsync("http://web.archive.org/web/20190810000426/https://www.addic7ed.com/ajax_getShows.php");
+            //var html = await _httpClient.GetStringAsync(new Uri("/ajax_getShows.php", UriKind.Relative));
             return html;
         }
 
