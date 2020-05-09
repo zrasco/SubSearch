@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -10,10 +11,26 @@ namespace Addic7ed.Addic7edApi
 
         public HttpClient()
         {
-            _httpClient = new System.Net.Http.HttpClient
+            var baseAddress = new Uri("http://www.addic7ed.com/", UriKind.Absolute);
+            var cookieContainer = new CookieContainer();
+            var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
+
+            cookieContainer.Add(baseAddress, new Cookie("wikisubtitlesuser", "edosdonkey"));
+            cookieContainer.Add(baseAddress, new Cookie("wikisubtitlespass", "lGirsb4f"));
+
+            _httpClient = new System.Net.Http.HttpClient(handler)
             {
-                BaseAddress = new Uri("http://www.addic7ed.com/", UriKind.Absolute)
+                BaseAddress = baseAddress
             };
+
+
+        }
+
+        public async Task<string> Login(string username, string password)
+        {
+            var html = await _httpClient.GetStringAsync(new Uri($"login.php"));
+
+            return html;
         }
 
         public async Task<string> GetShows()
@@ -44,6 +61,7 @@ namespace Addic7ed.Addic7edApi
         public async Task<string> GetSeasonSubtitles(int showId, int seasonNumber)
         {
             var uri = new Uri($"/ajax_loadShow.php?show={showId}&season={seasonNumber}", UriKind.Relative);
+
             var html = await _httpClient.GetStringAsync(uri);
             return html;
         }

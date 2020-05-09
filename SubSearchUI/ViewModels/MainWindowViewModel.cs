@@ -199,7 +199,10 @@ namespace SubSearchUI.ViewModels
 
         private void ExecuteDeleteSubtitleCommand(SubtitleFileInfo parameter)
         {
-            MessageBox.Show($"Deleting subtitle '{parameter.FullPath}'...");
+            if (MessageBox.Show($"Are you sure you want to delete {parameter.Filename}?","Subtitle deletion confirmation", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            {
+                File.Delete(parameter.FullPath);
+            }
         }
 
         private bool CanExecuteDeleteSubtitleCommand(SubtitleFileInfo parameter)
