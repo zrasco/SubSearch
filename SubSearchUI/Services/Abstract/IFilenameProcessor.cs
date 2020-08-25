@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SubSearchUI.Models;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -15,6 +16,10 @@ namespace SubSearchUI.Services.Abstract
     }
     public interface IFilenameProcessor
     {
+        // Infer series name and season from pathname
+        TVShowValue GetTVShowInfo(SubtitleFileInfo subtitleFileInfo, string RegExExpression = null);
+
+        // String must at least contain series name and season/episode numbers
         TVShowValue GetTVShowInfo(string filename, string RegExExpression = null);
     }
 }

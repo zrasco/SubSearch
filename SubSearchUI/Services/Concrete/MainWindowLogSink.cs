@@ -13,22 +13,30 @@ namespace SubSearchUI.Services.Concrete
 {
     class MainWindowLogSink : ILogEventSink
     {
-        public MainWindowLogSink()
-        {
+        private readonly IFormatProvider _formatProvider;
 
+        public MainWindowLogSink(IFormatProvider formatProvider)
+        {
+            _formatProvider = formatProvider;
         }
         public void Emit(LogEvent logEvent)
         {
+            // TODO: I'm certain there's a much better way to get the source context, but it's all I've been able to figure out so far
+            // I'll tackle this again when I have time to comb the serilog documentation
+
+            // Get the source context of the log
+            string sourceContext = logEvent.Properties["SourceContext"].ToString().Replace("\"", "");
+
             if (logEvent.Exception == null)
             {
                 Application.Current.Dispatcher.BeginInvoke(new Action (() => {
-                    (Application.Current.MainWindow as MainWindow).AddLogEntry(logEvent.RenderMessage(), (LogLevel)logEvent.Level);
+                    (Application.Current.MainWindow as MainWindow).AddLogEntry(DateTimeOffset.Now, sourceContext, logEvent.RenderMessage(_formatProvider), (LogLevel)logEvent.Level);
                 }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }
             else
             {
                 Application.Current.Dispatcher.BeginInvoke(new Action(() => {
-                    (Application.Current.MainWindow as MainWindow).AddLogEntry(logEvent.Exception, logEvent.RenderMessage(), (LogLevel)logEvent.Level);
+                    (Application.Current.MainWindow as MainWindow).AddLogEntry(logEvent.Exception, DateTimeOffset.Now, sourceContext, logEvent.RenderMessage(_formatProvider), (LogLevel)logEvent.Level);
                 }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             }
         }
@@ -67,9 +75,10 @@ namespace SubSearchUI.Services.Concrete
     public static class MySinkExtensions
     {
         public static LoggerConfiguration MainWindowLogSink(
-                  this LoggerSinkConfiguration loggerConfiguration)
+                  this LoggerSinkConfiguration loggerConfiguration,
+                  IFormatProvider formatProvider = null)
         {
-            return loggerConfiguration.Sink(new MainWindowLogSink());
+            return loggerConfiguration.Sink(new MainWindowLogSink(formatProvider));
         }
     }
 }

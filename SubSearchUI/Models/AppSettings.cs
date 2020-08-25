@@ -29,5 +29,6 @@ namespace SubSearchUI
         public string VideoExtensions { get; set; }
         public List<Plugin> Plugins { get; set; }
         public List<string> RegExTV { get; set; }
+        public List<string> RegExTVInferred { get; set; }
     }
 }

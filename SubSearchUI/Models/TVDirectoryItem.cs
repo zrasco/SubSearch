@@ -10,6 +10,11 @@ namespace SubSearchUI.Models
 {
     public class TVDirectoryItem : TVItemWithImage
     {
+
+        public TVDirectoryItem()
+        {
+
+        }
         public static TVDirectoryItem GetDummyItem()
         {
             return new TVDirectoryItem()
@@ -106,7 +111,7 @@ namespace SubSearchUI.Models
                     {
                         // TODO: Add exception to logger the "correct" way and remove tight coupling
 
-                        (Application.Current.MainWindow as MainWindow).AddLogEntry(ex.Message, LogLevel.Error);
+                        (Application.Current.MainWindow as MainWindow).AddLogEntry(ex, DateTimeOffset.Now, this.GetType().ToString(), ex.Message, LogLevel.Error);
                         IsNodeExpanded = false;
 
                         //throw ex;

@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Configuration;
 using System.Data;
+using System.Dynamic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -61,14 +62,19 @@ namespace SubSearchUI
             services.ConfigureWritable<AppSettings>(_config.GetSection(nameof(AppSettings)));
 
             // Create & inject logger
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json")
+                .Build();
+
             // TODO: Configure logging level later
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
+                .ReadFrom.Configuration(configuration)
                 .WriteTo.MainWindowLogSink()
                 .CreateLogger();
 
             services.AddSingleton<ILoggerFactory>(new SerilogLoggerFactory(Log.Logger));
-            services.AddLogging(x => x.AddSerilog());
+            services.AddLogging(x => x.AddSerilog(dispose: true));
 
             // Add culture info
             services.AddSingleton<IList<CultureInfo>>(CultureInfo.GetCultures(CultureTypes.AllCultures & ~CultureTypes.NeutralCultures).ToList());
@@ -78,6 +84,11 @@ namespace SubSearchUI
 
             // Filename regex processor
             services.AddTransient<IFilenameProcessor, FilenameProcessor>();
+        }
+
+        public static string GetCaller([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
+        {
+            return memberName;
         }
     }
 }

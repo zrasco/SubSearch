@@ -176,6 +176,8 @@
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
                                     <Image Source="{Binding ImageSource, TargetNullValue={StaticResource NullImage}}" Stretch="Uniform" Height="20" Width="20"/>
+                                    <TextBlock Text="{Binding Path=TimeStamp}" Foreground="{Binding Path=TimeStampColor}" MinWidth="200"/>
+                                    <TextBlock Text="{Binding Path=SourceContext}" Foreground="{Binding Path=SourceContextColor}" MinWidth="200"/>
                                     <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}" />
                                 </StackPanel>
                             </DataTemplate>

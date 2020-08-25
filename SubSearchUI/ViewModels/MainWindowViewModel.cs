@@ -228,7 +228,7 @@ namespace SubSearchUI.ViewModels
         private async void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
         {
             // Extract the relevant info from the filename
-            var fileInfo = _filenameProcessor.GetTVShowInfo(parameter.Filebase);
+            var fileInfo = _filenameProcessor.GetTVShowInfo(parameter);
 
             // Add subtitle download to queue
             Scheduler.AddItem($"Downloading {parameter.Filename}...", (item, cancellation) =>
@@ -252,16 +252,20 @@ namespace SubSearchUI.ViewModels
                             // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
                             using (FileStream fs = new FileStream(parameter.FullPath, FileMode.Create))
                             {
-                                downloadedSubs[0].Contents.CopyTo(fs);
-                                downloadedSubs[0].Contents.Close();                                    
-                            }
+                                if (downloadedSubs.Count > 0)
+                                {
+                                    downloadedSubs[0].Contents.CopyTo(fs);
+                                    downloadedSubs[0].Contents.Close();
 
-                            return true;
+                                    return true;
+                                }
+                            }
                         }
                     }
                 }
 
-                throw new Exception("Unable to find matching subtitle");
+                return false;
+                //throw new Exception("Unable to find matching subtitle");
             });
         }
 
@@ -460,13 +464,13 @@ namespace SubSearchUI.ViewModels
         /// </summary>
         public const string LogItemsPropertyName = "LogItems";
 
-        private ObservableCollection<ItemWithImage> _logItems;
+        private ObservableCollection<LogItem> _logItems;
 
         /// <summary>
         /// Sets and gets the LogItems property.
         /// Changes to that property's value raise the PropertyChanged event. 
         /// </summary>
-        public ObservableCollection<ItemWithImage> LogItems
+        public ObservableCollection<LogItem> LogItems
         {
             get
             {
@@ -521,7 +525,7 @@ namespace SubSearchUI.ViewModels
         {
             DirectoryList = new ObservableCollection<TVDirectoryItem>();
             FileList = new ObservableCollection<VideoFileItem>();
-            LogItems = new ObservableCollection<ItemWithImage>();
+            LogItems = new ObservableCollection<LogItem>();
             Scheduler = new Scheduler(QueueItemFinishedEventHandler);
 
             _filenameProcessor = filenameProcessor;

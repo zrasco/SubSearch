@@ -124,11 +124,18 @@ namespace SubSearchUI
 
         private void MnuExit_Click(object sender, RoutedEventArgs e)
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
+
             Application.Current.Shutdown();
+
+            // Should never get here
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
         private void MnuPreferences_Click(object sender, RoutedEventArgs e)
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
+
             // Create new window with DI
             var pWindow = _services.GetRequiredService<PreferencesWindow>();
 
@@ -150,10 +157,14 @@ namespace SubSearchUI
                 if (oldRoot != _appSettings.RootDirectory || oldLang != _appSettings.DefaultLanguage)
                     ReloadFileList(_vm.SelectedDirectory.FullPath);
             }
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
         private void TvFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
+
             // We must set the selected directory here, because inexplicably, the treeview control does not allow you
             // to bind to the selected item directly
             TreeView tvSender = (sender as TreeView);
@@ -172,10 +183,14 @@ namespace SubSearchUI
             {
                 _logger.LogError(ex, "Exception in TvFolders_SelectedItemChanged()");
             }
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
         private void ReloadFileList(string fullPath)
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
+
             bool foundVideos = false;
             var videoExtensions = _appSettings.VideoExtensions.Split(',').Select(p => p.Trim().ToUpper()).ToList();
 
@@ -211,36 +226,56 @@ namespace SubSearchUI
 
                 _vm.FileList.Add(notFoundItem);
             }
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
-        public void AddLogEntry(Exception ex, string message, LogLevel logLevel)
+        public void AddLogEntry(Exception ex, DateTimeOffset timeStamp, string sourceContext, string message, LogLevel logLevel)
         {
-            AddLogEntry(message + $" ({ex.Message})", logLevel);
+            AddLogEntry(timeStamp, sourceContext, message + $" ({ex.Message})", logLevel);
         }
 
-        public void AddLogEntry(string message, LogLevel logLevel)
+        public void AddLogEntry(DateTimeOffset timeStamp, string sourceContext, string message, LogLevel logLevel)
         {
+            // Note: Any images referenced here must be assigned as resources to the project in order for the ListView
+            // control to display them
+
             string imageSource = "/Images/";
 
             switch (logLevel)
             {
+                case LogLevel.Critical:
                 case LogLevel.Error:
                     imageSource += "error.png";
+
+                    if (logLevel == LogLevel.Critical)
+                        message = "CRITICAL: " + message;
+
                     break;
                 case LogLevel.Information:
                     imageSource += "info.png";
                     break;
                 case LogLevel.Warning:
-                    imageSource += "warning.png";
+                    imageSource += "warning.jpg";
+                    break;
+                case LogLevel.Debug:
+                    // Source: https://thenounproject.com/term/debug/83827/
+                    imageSource += "debug.png";
+                    break;
+                case LogLevel.Trace:
+                    // Source: https://depositphotos.com/vector-images/verbose.html
+                    imageSource += "verbose.jpg";
                     break;
                 default:
                     imageSource = null;
                     break;
             }
 
-            var logEntry = new ItemWithImage()
+            var logEntry = new LogItem()
             {
+                TimeStamp = timeStamp.ToString("M-d-yy HH:mm:ss.fff zzz"),
                 ImageSource = imageSource,
+                SourceContext = $"[{sourceContext}]",
                 Text = message
             };
 
@@ -250,6 +285,8 @@ namespace SubSearchUI
 
         private void RefreshTVFromPath(string rootDirectory)
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
+
             var newDirectoryList = new ObservableCollection<TVDirectoryItem>();
 
             // TODO: Add support for multiple root directories
@@ -275,10 +312,13 @@ namespace SubSearchUI
 
             // Change this in one go to avoid setting the listview into an intermediate state
             _vm.DirectoryList = newDirectoryList;
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
 
             try
             {
@@ -296,17 +336,21 @@ namespace SubSearchUI
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception in Window_Loaded()");
+                _logger.LogError(ex, $"Exception in {App.GetCaller()}()");
             }
             finally
             {
                 //Directory.SetCurrentDirectory(System.IO.Path.GetFullPath(currentDirectory));
             }
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private void LoadPlugins()
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
+
             _vm.PluginStatusList.Clear();
 
             // Load the plugins              
@@ -436,10 +480,16 @@ namespace SubSearchUI
                     _logger.LogError(ex, $"Unable to log plugin ({pluginInfo.Name})");
                 }
             }
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
         private async void BackgroundJobScheduler()
         {
+            // Trace logging commented out here for the sake of our sanity. Re-enable at your own peril!
+
+            //_logger.LogTrace("BackgroundJobScheduler() entered");
+
             // Start background jobs as nessecary
             var appSettings = _services.GetRequiredService<IWritableOptions<AppSettings>>().Value;
 
@@ -449,10 +499,14 @@ namespace SubSearchUI
             // Continue the background jobs scheduler. Default quantum value is 50ms but this can be adjusted thru settings.
             await Task.Delay(appSettings.SchedulerQuantum);
             await Dispatcher.BeginInvoke(new Action(BackgroundJobScheduler), DispatcherPriority.ApplicationIdle);
+
+            //_logger.LogTrace("BackgroundJobScheduler() exiting");
         }
 
         private void LvFiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
+
             // If you press ctrl+A to select all of the items, only the selected ones get IsSelected set to true.
             // This is because WPF uses a virtualizing stackpanel by default
             // Source: https://stackoverflow.com/questions/7372893/how-to-bind-isselected-in-a-listview-for-non-visible-virtualized-items
@@ -461,10 +515,14 @@ namespace SubSearchUI
 
             foreach (VideoFileItem item in lvFiles.SelectedItems)
                 item.IsSelected = true;
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
         private void VideoFileContextMenu_Opening(object sender, RoutedEventArgs e)
         {
+            _logger.LogTrace($"{App.GetCaller()}() entered");
+
             // Refresh the context menu items/visibility before opening
             _vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuItems));
             _vm.RaisePropertyChanged(nameof(_vm.SelectedVideoMenuVisible));
@@ -472,6 +530,8 @@ namespace SubSearchUI
             // Close the context menu if not visible
             if (_vm.SelectedVideoMenuVisible != Visibility.Visible)
                 (sender as ContextMenu).IsOpen = false;
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
 
         private void QueueItemContextMenu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
@@ -491,5 +551,7 @@ namespace SubSearchUI
             foreach (QueueItem item in lvQueue.SelectedItems)
                 item.IsSelected = true;
         }
+
+
     }
 }
