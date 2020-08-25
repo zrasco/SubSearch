@@ -64,7 +64,9 @@ namespace SubSearchUI
             _allCultureInfos = allCultureInfos;
             _logger = logger;
             _appSettings = settings.Value;
-            _vm = new MainWindowViewModel(QueueItemStatusChangeEventHandler, filenameProcessor);
+            _vm = services.GetRequiredService<MainWindowViewModel>();
+            _vm.Scheduler = new Scheduler(QueueItemStatusChangeEventHandler);
+            //_vm = new MainWindowViewModel(QueueItemStatusChangeEventHandler, filenameProcessor);
             _services = services;
             _vm.PluginStatusList = pluginStatus;
 
@@ -211,9 +213,11 @@ namespace SubSearchUI
 
                     // Determine whether this video has subtitles
                     _appSettings = _services.GetRequiredService<IWritableOptions<AppSettings>>().Value;
-                    fileItem.GenerateSubtitleInfo(_appSettings.DefaultLanguage, _allCultureInfos);
 
-                    _vm.FileList.Add(fileItem);
+                    if (fileItem.GenerateSubtitleInfo(_appSettings.DefaultLanguage, _allCultureInfos) == true)
+                        _vm.FileList.Add(fileItem);
+                    else
+                        _logger.LogError($"Unable to look up culture info for language '{_appSettings.DefaultLanguage}'");                    
                 }
             }
 
@@ -361,8 +365,7 @@ namespace SubSearchUI
                     if (_vm.PluginStatusList.Where(x => x.Name == pluginInfo.Name).FirstOrDefault() != null)
                     {
                         // Can't have more than 1 plugin with the same name in the configuration
-                        _vm.StatusText = $"Skipping duplicate plugin {pluginInfo.Name}.";
-                        _logger.LogWarning($"Duplicate Plugin {pluginInfo.Name} was skipped. Plugins must have unique names.");
+                        _vm.SetStatusText($"Duplicate Plugin {pluginInfo.Name} was skipped. Plugins must have unique names.", true, LogLevel.Warning);
                     }
                     else
                     {
@@ -372,7 +375,7 @@ namespace SubSearchUI
                         // Get the entry we just added
                         PluginStatus pluginStatus = _vm.PluginStatusList.Where(x => x.Name == pluginInfo.Name).FirstOrDefault();
 
-                        _vm.StatusText = $"Loading provider plugin {pluginInfo.Name} ({pluginInfo.File})...";
+                        _vm.SetStatusText($"Loading provider plugin {pluginInfo.Name} ({pluginInfo.File})...");
 
                         // Load the .NET assembly & dependencies
                         // TODO: Eventually add capability to use unloadable plugins. .NET Core 3.0 supports *some* of this but has issues with .NET dependency conflicts
@@ -431,8 +434,7 @@ namespace SubSearchUI
                             throw new Exception("Nothing in the plugin file implements IProviderPlugin");
                         }
 
-                        _vm.StatusText = $"Loaded plugin {pluginInfo.Name}. Initializing in background...";
-                        _logger.LogDebug($"Plugin {pluginInfo.Name} loaded. Adding initializer to scheduler.");
+                        _vm.SetStatusText($"Loaded plugin {pluginInfo.Name}. Initializing in background...");
                         pluginStatus.Status = PluginLoadStatus.Scheduled;
 
                         //context.Unload();
@@ -466,9 +468,26 @@ namespace SubSearchUI
                         },
                          (queueItem) =>
                          {
-                             int x = 10;
+                             string statusText = $"Done initializing plugin {pluginInfo.Name}.";
                              pluginStatus.Status = PluginLoadStatus.Loaded;
-                             _vm.StatusText = $"Done initializing plugin {pluginInfo.Name}. Waiting for {x} additional plugins...";
+
+                             int loadedPlugins = _vm.PluginStatusList.Where(x => x.Status == PluginLoadStatus.Loaded).Count();
+                             int loadingPlugins = _vm.PluginStatusList.Where(x => x.Status == PluginLoadStatus.Loading).Count();
+                             int scheduledPlugins = _vm.PluginStatusList.Where(x => x.Status == PluginLoadStatus.Scheduled).Count();
+                             int notLoadedPlugins = _vm.PluginStatusList.Where(x => x.Status == PluginLoadStatus.NotLoaded).Count();
+
+                             // See if any plugins are still left
+                             if (loadingPlugins > 0)
+                                 statusText += $" {loadingPlugins} plugins loading.";
+                             if (scheduledPlugins > 0)
+                                 statusText += $" {loadingPlugins} plugins scheduled.";
+                             if (notLoadedPlugins > 0)
+                                 statusText += $" {loadingPlugins} plugins not loaded.";
+
+                             if ((loadingPlugins + scheduledPlugins + notLoadedPlugins) == 0)
+                                 statusText += " All plugins loaded.";
+
+                             _vm.SetStatusText(statusText);
                          });
 
                         string ver = pluginStatus.Interface.Version();

@@ -128,58 +128,92 @@ namespace ProviderAddic7ed
                 else
                 {
                     // Find our target show
-                    var myShow = _tvShows.FirstOrDefault(x => x.Name.Contains(showName));
+                    bool foundShow = false;
+                    List<string> showNameVariations = new List<string>() { showName };
 
-                    if (myShow == null)
-                    {
-                        _logger.LogInformation($"TV show specified ({showName}) was not in the list of available shows.");
-                    }
-                    else
-                    {
-                        // Find all subtitles for each episode in the target season
-                        var eps = await _api.GetSeasonSubtitles(myShow.Id, seasonNbr);
+                    // Try replacing AND with &
+                    if (showName.Contains(" AND ", StringComparison.OrdinalIgnoreCase))
+                        showNameVariations.Add(showName.Replace(" AND ", " & ", StringComparison.OrdinalIgnoreCase));
 
-                        if (!eps.Any())
+                    // Try replacing & with AND
+                    if (showName.Contains(" & ", StringComparison.OrdinalIgnoreCase))
+                        showNameVariations.Add(showName.Replace(" & ", " and ", StringComparison.OrdinalIgnoreCase));
+
+                    // Try replacing hyphens with a space and trimming.
+                    // This will also handle any dangling hyphens left before or after the show name from RegEx expression evaluations
+                    if (showName.Contains("-", StringComparison.OrdinalIgnoreCase))
+                        showNameVariations.Add(showName.Replace("-", " ", StringComparison.OrdinalIgnoreCase).Trim());
+
+                    for (int x = 0; x < showNameVariations.Count && !foundShow; x++)
+                    {
+                        showName = showNameVariations[x];
+
+                        var myShow = _tvShows.FirstOrDefault(x => x.Name.Contains(showName, StringComparison.OrdinalIgnoreCase));
+
+                        if (myShow == null)
                         {
-                            _logger.LogInformation($"No episodes for season ({seasonNbr}) were available.");
+                            _logger.LogDebug($"TV show variation ({x}/{showNameVariations.Count}) ({showName}) was not in the list of available shows.");
                         }
                         else
                         {
-                            // Find our target episode
-                            var myEp = eps.Where(x => x.Number == episodeNbr).FirstOrDefault();
+                            foundShow = true;
 
-                            if (myEp == null)
+                            // Find all subtitles for each episode in the target season
+                            var eps = await _api.GetSeasonSubtitles(myShow.Id, seasonNbr);
+
+                            if (!eps.Any())
                             {
-                                _logger.LogInformation($"No subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available.");
+                                _logger.LogInformation($"No episodes for season ({seasonNbr}) were available.");
                             }
                             else
                             {
-                                foreach (CultureInfo language in cultureInfos)
+                                // Find our target episode
+                                var myEp = eps.Where(x => x.Number == episodeNbr).FirstOrDefault();
+
+                                if (myEp == null)
                                 {
-                                    // Find our target subtitle. Grab the first english one by default
-                                    var found = myEp.Subtitles.FirstOrDefault(x => x.Language == language.DisplayName);
-
-                                    // Try again using parent language
-                                    if (found == null)
-                                        found = myEp.Subtitles.FirstOrDefault(x => x.Language == language.Parent.DisplayName);
-
-                                    if (found == null)
-                                    {
-                                        _logger.LogInformation($"Subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available, not in the language specified ({language})");
-                                    }
-                                    else
-                                    {
-                                        var downloadedSub = await _api.DownloadSubtitle(myShow.Id, found.DownloadUri);
-
-                                        downloadedSubs.Add(new DownloadedSubtitle() { Contents = downloadedSub.Stream, CultureInfo = language });
-
-                                        _logger.LogInformation($"Successfully retrieved subtitles for season ({seasonNbr}) episode ({episodeNbr}) in {language}");
-                                    }
+                                    _logger.LogInformation($"No subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available.");
                                 }
+                                else
+                                {
+                                    foreach (CultureInfo language in cultureInfos)
+                                    {
+                                        // Find our target subtitle. Grab the first english one by default
+                                        var found = myEp.Subtitles.FirstOrDefault(x => x.Language == language.DisplayName);
 
+                                        // Try again using parent language
+                                        if (found == null)
+                                            found = myEp.Subtitles.FirstOrDefault(x => x.Language == language.Parent.DisplayName);
+
+                                        if (found == null)
+                                        {
+                                            _logger.LogInformation($"Subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available, not in the language specified ({language})");
+                                        }
+                                        else
+                                        {
+                                            var downloadedSub = await _api.DownloadSubtitle(myShow.Id, found.DownloadUri);
+
+                                            downloadedSubs.Add(new DownloadedSubtitle() { Contents = downloadedSub.Stream, CultureInfo = language });
+
+                                            _logger.LogInformation($"Successfully retrieved subtitles for season ({seasonNbr}) episode ({episodeNbr}) in {language}");
+                                        }
+                                    }
+
+                                }
                             }
                         }
                     }
+
+                    if (!foundShow)
+                    {
+                        string warning = $"TV show ({showName}) was not in the list of available shows.";
+
+                        if (showNameVariations.Count > 1)
+                            warning += $" {showNameVariations.Count} variations attempted.";
+
+                        _logger.LogWarning(warning);
+                    }
+                        
                 }
             }
             catch (Exception ex)

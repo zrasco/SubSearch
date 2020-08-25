@@ -1,12 +1,15 @@
 ﻿using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
+using Microsoft.Extensions.Logging;
 using ProviderPluginTypes;
+using Serilog.Events;
 using SubSearchUI.Models;
 using SubSearchUI.Services.Abstract;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -163,6 +166,7 @@ namespace SubSearchUI.ViewModels
 
                 if (SelectedVideos.Count > 1)
                 {
+                    // TODO: Add more useful context menu for multiple file selection
                     retval.Add(new VFIContextMenuItem() { Displayname = $"{SelectedVideos.Count} files selected", Icon = "/Images/error.png", CommandParameter = null });
                 }
                 else if (SelectedVideos.Count == 1)
@@ -202,6 +206,8 @@ namespace SubSearchUI.ViewModels
             if (MessageBox.Show($"Are you sure you want to delete {parameter.Filename}?","Subtitle deletion confirmation", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
                 File.Delete(parameter.FullPath);
+                parameter.Exists = false;
+                parameter.Parent.RefreshColor();
             }
         }
 
@@ -250,16 +256,20 @@ namespace SubSearchUI.ViewModels
                             cancellation.ThrowIfCancellationRequested();
 
                             // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
-                            using (FileStream fs = new FileStream(parameter.FullPath, FileMode.Create))
+                            if (downloadedSubs.Count > 0)
                             {
-                                if (downloadedSubs.Count > 0)
+                                using (FileStream fs = new FileStream(parameter.FullPath, FileMode.Create))
                                 {
                                     downloadedSubs[0].Contents.CopyTo(fs);
                                     downloadedSubs[0].Contents.Close();
-
-                                    return true;
                                 }
+
+                                parameter.Exists = true;
+                                parameter.Parent.RefreshColor();
+
+                                return true;
                             }
+
                         }
                     }
                 }
@@ -310,6 +320,14 @@ namespace SubSearchUI.ViewModels
 
         #endregion // RelayCommands
 
+        public void SetStatusText(string text, bool alsoLog = true, LogLevel logLevel = LogLevel.Information)
+        {
+            // TODO: Add status text color for different logLevels
+            StatusText = text;
+
+            if (alsoLog)
+                _logger.Log(logLevel, text);
+        }
         /// <summary>
         /// The <see cref="StatusText" /> property's name.
         /// </summary>
@@ -520,15 +538,19 @@ namespace SubSearchUI.ViewModels
         }
 
         private readonly IFilenameProcessor _filenameProcessor;
+        private readonly ILogger<MainWindowViewModel> _logger;
 
-        public MainWindowViewModel(Action<QueueItem> QueueItemFinishedEventHandler, IFilenameProcessor filenameProcessor)
+        public MainWindowViewModel(//Action<QueueItem> QueueItemFinishedEventHandler,
+                                    IFilenameProcessor filenameProcessor,
+                                    ILogger<MainWindowViewModel> logger)
         {
             DirectoryList = new ObservableCollection<TVDirectoryItem>();
             FileList = new ObservableCollection<VideoFileItem>();
             LogItems = new ObservableCollection<LogItem>();
-            Scheduler = new Scheduler(QueueItemFinishedEventHandler);
+            //Scheduler = new Scheduler(QueueItemFinishedEventHandler);
 
             _filenameProcessor = filenameProcessor;
+            _logger = logger;
         }
     }
 }

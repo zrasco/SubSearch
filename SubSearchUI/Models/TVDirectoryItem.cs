@@ -107,16 +107,12 @@ namespace SubSearchUI.Models
                         //if (emptyDir == true)
                         //    IsNodeExpanded = false;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        // TODO: Add exception to logger the "correct" way and remove tight coupling
-
-                        (Application.Current.MainWindow as MainWindow).AddLogEntry(ex, DateTimeOffset.Now, this.GetType().ToString(), ex.Message, LogLevel.Error);
                         IsNodeExpanded = false;
 
-                        //throw ex;
+                        throw;
                     }
-
 
                 }
                 else

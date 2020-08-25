@@ -8,11 +8,17 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Navigation;
 
 namespace SubSearchUI.Models
 {
     public class SubtitleFileInfo
     {
+        public SubtitleFileInfo(VideoFileItem parent)
+        {
+            Parent = parent;
+        }
+        public VideoFileItem Parent { get; set; }
         public CultureInfo CultureInfo { get; set; }
         public string Filebase { get; set; }
         public string FullPath { get; set; }
@@ -26,6 +32,15 @@ namespace SubSearchUI.Models
         {
             SubtitleFileList = new List<SubtitleFileInfo>();
         }
+
+        public void RefreshColor()
+        {
+            if (SubtitleFileList.Where(x => x.Exists).Any())
+                TextColor = Brushes.Green;
+            else
+                TextColor = Brushes.Red;
+        }
+
         /// <summary>
         /// The <see cref="IsSelected" /> property's name.
         /// </summary>
@@ -139,37 +154,36 @@ namespace SubSearchUI.Models
             }
         }
 
-        public void GenerateSubtitleInfo(string defaultLanguage, IList<CultureInfo> allCultureInfos)
+        public bool GenerateSubtitleInfo(string defaultLanguage, IList<CultureInfo> allCultureInfos)
+        // Returns true if subtitle info was generated, otherwise false if unable to look up culture info for specified language
         {
+            bool retval = false;
+
             string fileBase = $"{Path.GetDirectoryName(FullPath)}\\{Path.GetFileNameWithoutExtension(FullPath)}";
             CultureInfo defaultCultureInfo = allCultureInfos.Where(x => x.DisplayName == defaultLanguage).FirstOrDefault();
 
-            if (defaultCultureInfo == null)
-            {
-                // TODO: Add logging
-                //AddLogEntry($"Unable to look up culture info for language ''", ImageType.Error);
-            }
-            else
+            if (defaultCultureInfo != null)
             {
                 SubtitleFileList = new List<SubtitleFileInfo>();
 
-                SubtitleFileList.Add(new SubtitleFileInfo() { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + ".srt" });
-                SubtitleFileList.Add(new SubtitleFileInfo() { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + "." + defaultCultureInfo.TwoLetterISOLanguageName + ".srt" });
+                SubtitleFileList.Add(new SubtitleFileInfo(this) { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + ".srt" });
+                SubtitleFileList.Add(new SubtitleFileInfo(this) { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + "." + defaultCultureInfo.TwoLetterISOLanguageName + ".srt" });
 
                 if (defaultCultureInfo.TwoLetterISOLanguageName != defaultCultureInfo.Name)
-                    SubtitleFileList.Add(new SubtitleFileInfo() { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + "." + defaultCultureInfo.Name + ".srt" });
+                    SubtitleFileList.Add(new SubtitleFileInfo(this) { CultureInfo = defaultCultureInfo, Filebase = Path.GetFileName(fileBase), FullPath = fileBase + "." + defaultCultureInfo.Name + ".srt" });
 
                 foreach (var info in SubtitleFileList)
                 {
                     info.Filename = Path.GetFileName(info.FullPath);
                     info.Exists = File.Exists(info.FullPath);
                 }
+
+                retval = true;
             }
 
-            if (SubtitleFileList.Where(x => x.Exists).Any())
-                TextColor = Brushes.Green;
-            else
-                TextColor = Brushes.Red;
+            RefreshColor();
+
+            return retval;
         }
     }
 }

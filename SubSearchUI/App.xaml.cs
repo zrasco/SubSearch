@@ -84,6 +84,9 @@ namespace SubSearchUI
 
             // Filename regex processor
             services.AddTransient<IFilenameProcessor, FilenameProcessor>();
+
+            // Add viewmodels
+            services.AddTransient<MainWindowViewModel>();
         }
 
         public static string GetCaller([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
