@@ -288,7 +288,10 @@ namespace SubSearchUI.ViewModels
         {
             Date = info.Date.ToString();
             EpNbr = info.EpisodeNbr.ToString();
-            Series = info.Series;
+
+            // TODO: Use first series name for now
+            Series = info.Series[0];
+
             Title = info.Title;
             Quality = info.Quality;
             SeasonNbr = info.Season.ToString();

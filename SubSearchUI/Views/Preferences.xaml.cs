@@ -106,7 +106,7 @@ namespace SubSearchUI.Views
                 foreach (var regExVal in _vm.RegExList)
                 {
                     // Evaluate each regular expression
-                    var info = _filenameProcessor.GetTVShowInfo(_vm.SampleText, regExVal.Expression);
+                    var info = _filenameProcessor.InfoFromFilebase(_vm.SampleText, regExVal.Expression);
 
                     regExVal.FillFrom(info);
 

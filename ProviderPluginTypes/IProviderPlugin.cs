@@ -27,6 +27,6 @@ namespace ProviderPluginTypes
         // Search by file hash
         Task<IList<DownloadedSubtitle>> SearchSubtitlesByHashAsync(string fileHash, long fileSize, IList<CultureInfo> cultureInfos);
         // Search by show, season and episode #
-        Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(string showName, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos);
+        Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(IList<string> showNameCandidates, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos);
     }
 }

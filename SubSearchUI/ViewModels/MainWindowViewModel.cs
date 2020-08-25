@@ -231,52 +231,61 @@ namespace SubSearchUI.ViewModels
             }
         }
 
-        private async void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
+        private void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
         {
             // Extract the relevant info from the filename
-            var fileInfo = _filenameProcessor.GetTVShowInfo(parameter);
+            TVShowValue fileInfo = _filenameProcessor.GetTVShowInfo(parameter);
 
-            // Add subtitle download to queue
-            Scheduler.AddItem($"Downloading {parameter.Filename}...", (item, cancellation) =>
+            if (fileInfo != null)
             {
-                foreach (var pluginStatus in PluginStatusList)
+                // Add subtitle download to queue
+                Scheduler.AddItem($"Downloading {parameter.Filename}...", (item, cancellation) =>
                 {
-                    // Cancel if needed
-                    cancellation.ThrowIfCancellationRequested();
-
-                    if (pluginStatus.Status == PluginLoadStatus.Loaded)
+                    foreach (var pluginStatus in PluginStatusList)
                     {
-                        if ((pluginStatus.Interface.ProviderCapabilities() & SearchCapabilities.TV) == SearchCapabilities.TV)
+                        // Cancel if needed
+                        cancellation.ThrowIfCancellationRequested();
+
+                        if (pluginStatus.Status == PluginLoadStatus.Loaded)
                         {
-                            IList<DownloadedSubtitle> downloadedSubs = new List<DownloadedSubtitle>();
-
-                            downloadedSubs = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season, fileInfo.EpisodeNbr, new List<CultureInfo>() { parameter.CultureInfo }).Result;
-
-                            // Cancel if needed
-                            cancellation.ThrowIfCancellationRequested();
-
-                            // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
-                            if (downloadedSubs.Count > 0)
+                            if ((pluginStatus.Interface.ProviderCapabilities() & SearchCapabilities.TV) == SearchCapabilities.TV)
                             {
-                                using (FileStream fs = new FileStream(parameter.FullPath, FileMode.Create))
+                                IList<DownloadedSubtitle> downloadedSubs = new List<DownloadedSubtitle>();
+
+                                downloadedSubs = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season.GetValueOrDefault(), fileInfo.EpisodeNbr.GetValueOrDefault(), new List<CultureInfo>() { parameter.CultureInfo }).Result;
+
+                                // Cancel if needed
+                                cancellation.ThrowIfCancellationRequested();
+
+                                // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
+                                if (downloadedSubs.Count > 0)
                                 {
-                                    downloadedSubs[0].Contents.CopyTo(fs);
-                                    downloadedSubs[0].Contents.Close();
+                                    using (FileStream fs = new FileStream(parameter.FullPath, FileMode.Create))
+                                    {
+                                        downloadedSubs[0].Contents.CopyTo(fs);
+                                        downloadedSubs[0].Contents.Close();
+                                    }
+
+                                    parameter.Exists = true;
+                                    parameter.Parent.RefreshColor();
+
+                                    return true;
                                 }
 
-                                parameter.Exists = true;
-                                parameter.Parent.RefreshColor();
-
-                                return true;
                             }
-
                         }
                     }
-                }
 
-                return false;
-                //throw new Exception("Unable to find matching subtitle");
-            });
+                    _logger.LogError($"Unable to find matching subtitle for ({parameter.Filename})");
+                    return false;
+                    //throw new Exception("Unable to find matching subtitle");
+                    
+                });
+            }
+            else
+            {
+                _logger.LogError($"Unable to obtain series, season, or episode info from file ({parameter.Filename}). Please rename file using standard naming conventions.");
+            }
         }
 
         private bool CanExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)

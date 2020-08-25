@@ -78,7 +78,7 @@ namespace ProviderAddic7ed
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,$"Exception: Init()");
+                _logger.LogError(ex,$"Exception: {GetCaller()}()");
                 _logger.LogTrace($"{GetCaller()}() exiting (exception)");
                 throw;
             }
@@ -113,7 +113,7 @@ namespace ProviderAddic7ed
             throw new NotImplementedException();
         }
 
-        public async Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(string showName, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos)
+        public async Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(IList<string> showNameCandidates, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos)
         {
             _logger.LogTrace($"{GetCaller()}() entered");
 
@@ -129,34 +129,24 @@ namespace ProviderAddic7ed
                 {
                     // Find our target show
                     bool foundShow = false;
-                    List<string> showNameVariations = new List<string>() { showName };
 
-                    // Try replacing AND with &
-                    if (showName.Contains(" AND ", StringComparison.OrdinalIgnoreCase))
-                        showNameVariations.Add(showName.Replace(" AND ", " & ", StringComparison.OrdinalIgnoreCase));
+                    _logger.LogDebug($"Searching for subtitles for the following show names: ({String.Join<string>(", ", showNameCandidates).TrimEnd()})");
 
-                    // Try replacing & with AND
-                    if (showName.Contains(" & ", StringComparison.OrdinalIgnoreCase))
-                        showNameVariations.Add(showName.Replace(" & ", " and ", StringComparison.OrdinalIgnoreCase));
-
-                    // Try replacing hyphens with a space and trimming.
-                    // This will also handle any dangling hyphens left before or after the show name from RegEx expression evaluations
-                    if (showName.Contains("-", StringComparison.OrdinalIgnoreCase))
-                        showNameVariations.Add(showName.Replace("-", " ", StringComparison.OrdinalIgnoreCase).Trim());
-
-                    for (int x = 0; x < showNameVariations.Count && !foundShow; x++)
+                    for (int x = 0; x < showNameCandidates.Count && !foundShow; x++)
                     {
-                        showName = showNameVariations[x];
+                        string showName = showNameCandidates[x];
 
                         var myShow = _tvShows.FirstOrDefault(x => x.Name.Contains(showName, StringComparison.OrdinalIgnoreCase));
 
                         if (myShow == null)
                         {
-                            _logger.LogDebug($"TV show variation ({x}/{showNameVariations.Count}) ({showName}) was not in the list of available shows.");
+                            _logger.LogDebug($"TV show variation ({x + 1}/{showNameCandidates.Count}) ({showName}) was not in the list of available shows.");
                         }
                         else
                         {
                             foundShow = true;
+
+                            _logger.LogDebug($"TV show variation ({x + 1}/{showNameCandidates.Count}) ({showName}) was found in the list of available shows.");
 
                             // Find all subtitles for each episode in the target season
                             var eps = await _api.GetSeasonSubtitles(myShow.Id, seasonNbr);
@@ -172,7 +162,7 @@ namespace ProviderAddic7ed
 
                                 if (myEp == null)
                                 {
-                                    _logger.LogInformation($"No subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available.");
+                                    _logger.LogInformation($"No subtitles for series ({showName}) season ({seasonNbr}) episode ({episodeNbr}) were available.");
                                 }
                                 else
                                 {
@@ -187,15 +177,17 @@ namespace ProviderAddic7ed
 
                                         if (found == null)
                                         {
-                                            _logger.LogInformation($"Subtitles for season ({seasonNbr}) episode ({episodeNbr}) were available, not in the language specified ({language})");
+                                            _logger.LogInformation($"Subtitles for series ({showName}) season ({seasonNbr}) episode ({episodeNbr}) were available, not in the language specified ({language})");
                                         }
                                         else
                                         {
+                                            _logger.LogInformation($"Downloading subtitles for series ({showName}) season ({seasonNbr}) episode ({episodeNbr}) in {language}");
+
                                             var downloadedSub = await _api.DownloadSubtitle(myShow.Id, found.DownloadUri);
 
                                             downloadedSubs.Add(new DownloadedSubtitle() { Contents = downloadedSub.Stream, CultureInfo = language });
 
-                                            _logger.LogInformation($"Successfully retrieved subtitles for season ({seasonNbr}) episode ({episodeNbr}) in {language}");
+                                            _logger.LogInformation($"Successfully retrieved subtitles for series ({showName}) season ({seasonNbr}) episode ({episodeNbr}) in {language}");
                                         }
                                     }
 
@@ -206,10 +198,7 @@ namespace ProviderAddic7ed
 
                     if (!foundShow)
                     {
-                        string warning = $"TV show ({showName}) was not in the list of available shows.";
-
-                        if (showNameVariations.Count > 1)
-                            warning += $" {showNameVariations.Count} variations attempted.";
+                        string warning = $"Could not find show in list of available shows. Used the following show names: ({String.Join<string>(", ", showNameCandidates).TrimEnd()})";
 
                         _logger.LogWarning(warning);
                     }
@@ -218,7 +207,7 @@ namespace ProviderAddic7ed
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Exception: SearchSubtitlesForTVAsync()");
+                _logger.LogError(ex, $"Exception: {GetCaller()}()");
 
                 _logger.LogTrace($"{GetCaller()}() exiting (exception)");
                 throw;
