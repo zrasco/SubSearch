@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using ProviderPluginTypes;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -15,7 +16,7 @@ namespace ProviderAddic7ed
 {
     public class ProviderPlugin : IProviderPlugin
     {
-        const string SHOWS_CACHE_FILENAME = "shows.tmp";
+        const string SHOWS_CACHE_FILENAME = "showList.cache";
         const string PLUGIN_VERSION = "0.5";
 
         // Global variables
@@ -32,7 +33,7 @@ namespace ProviderAddic7ed
 
             _logger.LogTrace($"{GetCaller()}() exiting");
         }
-        public void Init()
+        public async Task Init(ConcurrentQueue<ProviderSignal> cQueue)
         {
             _logger.LogTrace($"{GetCaller()}() entered");
             Stream stream = null;
@@ -52,13 +53,17 @@ namespace ProviderAddic7ed
 
                     stream.Close();
 
-                    _logger.LogDebug($"Show list read from {SHOWS_CACHE_FILENAME}");
+                    string message = $"Show list read from {SHOWS_CACHE_FILENAME}";
+                    _logger.LogDebug(message);
+                    UpdateTaskDetails(cQueue, $"Plugin initialized. {message}");
 
                 }
                 else
                 {
                     // Get the list of all TV shows
-                    _tvShows = _api.GetShows().Result;
+                    UpdateTaskDisplay(cQueue, .5, $"{SHOWS_CACHE_FILENAME} not found. Downloading show list...");
+                    //Thread.Sleep(100000);
+                    _tvShows = await _api.GetShows();
 
                     if (_tvShows.Any())
                     {
@@ -66,13 +71,12 @@ namespace ProviderAddic7ed
                         formatter.Serialize(stream, _tvShows);
                         stream.Close();
 
-                        _logger.LogDebug($"Show list downloaded and written to {SHOWS_CACHE_FILENAME}");
+                        string message = $"Show list downloaded and written to {SHOWS_CACHE_FILENAME}";
+                        UpdateTaskDetails(cQueue, $"Plugin initialized. {message}");
+                        _logger.LogDebug(message);
                     }
                     else
                         _logger.LogWarning($"No TV shows on site!");
-
-
-
                 }
                 
             }
@@ -91,7 +95,7 @@ namespace ProviderAddic7ed
             _logger.LogTrace($"{GetCaller()}() exiting (normal)");
         }
 
-        public void Unload()
+        public async Task Unload(ConcurrentQueue<ProviderSignal> cQueue)
         {
             _logger.LogTrace($"{GetCaller()}() entered");
 
@@ -105,7 +109,7 @@ namespace ProviderAddic7ed
             return SearchCapabilities.TV;
         }
 
-        public Task<IList<DownloadedSubtitle>> SearchSubtitlesByHashAsync(string fileHash, long fileSize, IList<CultureInfo> cultureInfos)
+        public Task<IList<DownloadedSubtitle>> SearchSubtitlesByHashAsync(string fileHash, long fileSize, IList<CultureInfo> cultureInfos, ConcurrentQueue<ProviderSignal> cQueue)
         {
             _logger.LogTrace($"{GetCaller()}() entered");
 
@@ -113,7 +117,11 @@ namespace ProviderAddic7ed
             throw new NotImplementedException();
         }
 
-        public async Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(IList<string> showNameCandidates, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos)
+        public async Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(IList<string> showNameCandidates,
+                                                                                int seasonNbr,
+                                                                                int episodeNbr,
+                                                                                IList<CultureInfo> cultureInfos,
+                                                                                System.Collections.Concurrent.ConcurrentQueue<ProviderSignal> cQueue)
         {
             _logger.LogTrace($"{GetCaller()}() entered");
 
@@ -129,6 +137,7 @@ namespace ProviderAddic7ed
                 {
                     // Find our target show
                     bool foundShow = false;
+                    UpdateTaskDisplay(cQueue, .1, "Searching for TV show...");
 
                     _logger.LogDebug($"Searching for subtitles for the following show names: ({String.Join<string>(", ", showNameCandidates).TrimEnd()})");
 
@@ -146,9 +155,11 @@ namespace ProviderAddic7ed
                         {
                             foundShow = true;
 
+                            UpdateTaskDisplay(cQueue, .2, $"Matched to series ({showName}). Searching for subtitles for season ({seasonNbr})...");
                             _logger.LogDebug($"TV show variation ({x + 1}/{showNameCandidates.Count}) ({showName}) was found in the list of available shows.");
 
                             // Find all subtitles for each episode in the target season
+
                             var eps = await _api.GetSeasonSubtitles(myShow.Id, seasonNbr);
 
                             if (!eps.Any())
@@ -181,6 +192,7 @@ namespace ProviderAddic7ed
                                         }
                                         else
                                         {
+                                            UpdateTaskDisplay(cQueue, .3, $"Found {eps.Count} episodes for season ({seasonNbr}). Episode ({episodeNbr}) subtitle found. Downloading...");
                                             _logger.LogInformation($"Downloading subtitles for series ({showName}) season ({seasonNbr}) episode ({episodeNbr}) in {language}");
 
                                             var downloadedSub = await _api.DownloadSubtitle(myShow.Id, found.DownloadUri);
@@ -222,9 +234,31 @@ namespace ProviderAddic7ed
             return PLUGIN_VERSION;
         }
 
+        // Helper functions
         private static string GetCaller([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
         {
             return memberName;
+        }
+
+        private static void UpdateTaskDisplay(ConcurrentQueue<ProviderSignal> cQueue, double percentage, string detailsText)
+        // Combines UpdateTaskDetails() and UpdateTaskPercentage into one function
+        {
+            UpdateTaskDetails(cQueue, detailsText);
+            UpdateTaskPercentage(cQueue, percentage);
+        }
+
+        private static void UpdateTaskPercentage(ConcurrentQueue<ProviderSignal> cQueue, double value)
+        // Signals the calling application to update the percentage of the queue item associated with this task
+        {
+            cQueue.Enqueue(new ProviderSignal() { Type = ProviderSignal.SignalType.ChangePercentage, DoubleValue = value });
+            Thread.Sleep(10);
+        }
+
+        private static void UpdateTaskDetails(ConcurrentQueue<ProviderSignal> cQueue, string value)
+        // Signals the calling application to update the details text of the queue item associated with this task
+        {
+            cQueue.Enqueue(new ProviderSignal() { Type = ProviderSignal.SignalType.ChangeDetails, TextValue = value });
+            Thread.Sleep(10);
         }
     }
 }

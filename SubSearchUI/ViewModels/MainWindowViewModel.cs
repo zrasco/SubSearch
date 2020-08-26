@@ -10,12 +10,16 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace SubSearchUI.ViewModels
 {
@@ -231,7 +235,7 @@ namespace SubSearchUI.ViewModels
             }
         }
 
-        private void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
+        private async void ExecuteDownloadSubtitleCommand(SubtitleFileInfo parameter)
         {
             // Extract the relevant info from the filename
             TVShowValue fileInfo = _filenameProcessor.GetTVShowInfo(parameter);
@@ -251,11 +255,31 @@ namespace SubSearchUI.ViewModels
                             if ((pluginStatus.Interface.ProviderCapabilities() & SearchCapabilities.TV) == SearchCapabilities.TV)
                             {
                                 IList<DownloadedSubtitle> downloadedSubs = new List<DownloadedSubtitle>();
+                                ConcurrentQueue<ProviderSignal> cQueue = new ConcurrentQueue<ProviderSignal>();
 
-                                downloadedSubs = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season.GetValueOrDefault(), fileInfo.EpisodeNbr.GetValueOrDefault(), new List<CultureInfo>() { parameter.CultureInfo }).Result;
+                                //downloadedSubs = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season.GetValueOrDefault(), fileInfo.EpisodeNbr.GetValueOrDefault(), new List<CultureInfo>() { parameter.CultureInfo }).Result;
+                                var downloadTask = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season.GetValueOrDefault(), fileInfo.EpisodeNbr.GetValueOrDefault(), new List<CultureInfo>() { parameter.CultureInfo }, cQueue);
+
+                                while (!cQueue.IsEmpty || downloadTask.Status == TaskStatus.WaitingForActivation || downloadTask.Status == TaskStatus.Running)
+                                {
+                                    // Check for signals from provider task
+                                    if (cQueue.TryDequeue(out ProviderSignal result) == true)
+                                    {
+                                        if (result.Type == ProviderSignal.SignalType.ChangePercentage)
+                                            item.ProgressPercentage = result.DoubleValue;
+                                        else if (result.Type == ProviderSignal.SignalType.ChangeDetails)
+                                            item.DetailsText = result.TextValue;
+                                    }
+
+                                    cancellation.ThrowIfCancellationRequested();
+                                    System.Threading.Thread.Sleep(10);
+                                }
 
                                 // Cancel if needed
-                                cancellation.ThrowIfCancellationRequested();
+                                //cancellation.ThrowIfCancellationRequested();
+
+                                // Get the result and process
+                                downloadedSubs = downloadTask.Result;
 
                                 // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
                                 if (downloadedSubs.Count > 0)
@@ -269,6 +293,7 @@ namespace SubSearchUI.ViewModels
                                     parameter.Exists = true;
                                     parameter.Parent.RefreshColor();
 
+                                    item.DetailsText = $"Successfully downloaded subtitle to path ({parameter.FullPath})";
                                     return true;
                                 }
 
@@ -276,7 +301,9 @@ namespace SubSearchUI.ViewModels
                         }
                     }
 
-                    _logger.LogError($"Unable to find matching subtitle for ({parameter.Filename})");
+                    string error = $"Unable to find matching subtitle for ({parameter.Filename})";
+                    _logger.LogError(error);
+                    item.DetailsText = error;
                     return false;
                     //throw new Exception("Unable to find matching subtitle");
                     

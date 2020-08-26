@@ -27,7 +27,7 @@ namespace SubSearchUI.Models
             if (actionWhenDone == null)
                 actionWhenDone = (ignoreme) => { };
 
-            QueueItem queueItem = new QueueItem() { Text = text, Status = QueueStatus.InQueue, Work = actionWithResult, DoWhenDone = actionWhenDone };
+            QueueItem queueItem = new QueueItem() { TaskText = text, Status = QueueStatus.InQueue, Work = actionWithResult, DoWhenDone = actionWhenDone };
 
             ItemsQueue.Add(queueItem);
 

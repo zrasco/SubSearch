@@ -57,9 +57,9 @@ namespace SubSearchUI.Models
         }
 
         /// <summary>
-        /// The <see cref="Text" /> property's name.
+        /// The <see cref="TaskText" /> property's name.
         /// </summary>
-        public const string TextPropertyName = "Text";
+        public const string TaskTextPropertyName = "TaskText";
 
         private string _text;
 
@@ -67,7 +67,7 @@ namespace SubSearchUI.Models
         /// Sets and gets the Text property.
         /// Changes to that property's value raise the PropertyChanged event. 
         /// </summary>
-        public string Text
+        public string TaskText
         {
             get
             {
@@ -82,7 +82,7 @@ namespace SubSearchUI.Models
                 }
 
                 _text = value;
-                RaisePropertyChanged(TextPropertyName);
+                RaisePropertyChanged(TaskTextPropertyName);
             }
         }
 
@@ -206,6 +206,36 @@ namespace SubSearchUI.Models
                     return "Cancelled";
                 else
                     return String.Format("{0:P2}", ProgressPercentage);
+            }
+        }
+
+        /// <summary>
+        /// The <see cref="TaskText" /> property's name.
+        /// </summary>
+        public const string DetailsTextPropertyName = "DetailsText";
+
+        private string _detailsText;
+
+        /// <summary>
+        /// Sets and gets the Text property.
+        /// Changes to that property's value raise the PropertyChanged event. 
+        /// </summary>
+        public string DetailsText
+        {
+            get
+            {
+                return _detailsText;
+            }
+
+            set
+            {
+                if (_detailsText == value)
+                {
+                    return;
+                }
+
+                _detailsText = value;
+                RaisePropertyChanged(DetailsTextPropertyName);
             }
         }
 

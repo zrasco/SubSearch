@@ -443,6 +443,8 @@ namespace SubSearchUI
                         {
                             try
                             {
+                                ConcurrentQueue<ProviderSignal> cQueue = new ConcurrentQueue<ProviderSignal>();
+
                                 // Change the status from the UI thread when it gets around to it
                                 Dispatcher.BeginInvoke(() =>
                                 {
@@ -451,7 +453,23 @@ namespace SubSearchUI
 
                                 _logger.LogDebug($"Plugin {pluginInfo.Name} initialization scheduled for execution.");
 
-                                pluginStatus.Interface.Init();
+                                // TODO: Init() appears to be running synchronously, even though it's awaitable. I suspect this has to do with the calling thread.
+                                var initTask = pluginStatus.Interface.Init(cQueue);
+
+                                while (!cQueue.IsEmpty || initTask.Status == TaskStatus.WaitingForActivation || initTask.Status == TaskStatus.Running)
+                                {
+                                    // Check for signals from provider task
+                                    if (cQueue.TryDequeue(out ProviderSignal result) == true)
+                                    {
+                                        if (result.Type == ProviderSignal.SignalType.ChangePercentage)
+                                            queueItem.ProgressPercentage = result.DoubleValue;
+                                        else if (result.Type == ProviderSignal.SignalType.ChangeDetails)
+                                            queueItem.DetailsText = result.TextValue;
+                                    }
+
+                                    cancellation.ThrowIfCancellationRequested();
+                                    System.Threading.Thread.Sleep(10);
+                                }
 
                                 _logger.LogDebug($"Plugin {pluginInfo.Name} initialization complete.");
 

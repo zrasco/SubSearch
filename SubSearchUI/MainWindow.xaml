@@ -129,7 +129,7 @@
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
-                                                <TextBlock Text="{Binding Path=Text}" Foreground="{Binding Path=TextColor}"/>
+                                                <TextBlock Text="{Binding Path=TaskText}" Foreground="{Binding Path=TextColor}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
@@ -155,6 +155,15 @@
                                                     IsEnabled="False"
                                                     Foreground="{Binding Path=TextColor}"/>
                                                 <TextBlock Text="{Binding Path=ProgressText, StringFormat=p}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Details" Width="800">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <TextBlock Text="{Binding Path=DetailsText}" Foreground="{Binding Path=TextColor}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
