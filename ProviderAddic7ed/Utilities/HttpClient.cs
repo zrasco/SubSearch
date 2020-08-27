@@ -15,8 +15,8 @@ namespace Addic7ed.Addic7edApi
             var cookieContainer = new CookieContainer();
             var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
 
-            cookieContainer.Add(baseAddress, new Cookie("wikisubtitlesuser", "edosdonkey"));
-            cookieContainer.Add(baseAddress, new Cookie("wikisubtitlespass", "lGirsb4f"));
+            cookieContainer.Add(baseAddress, new Cookie("wikisubtitlesuser", "954584"));
+            cookieContainer.Add(baseAddress, new Cookie("wikisubtitlespass", "4175b653dd76b03dd97fc3670ff4f048"));
 
             _httpClient = new System.Net.Http.HttpClient(handler)
             {

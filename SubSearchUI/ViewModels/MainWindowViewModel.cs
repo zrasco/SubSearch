@@ -281,7 +281,6 @@ namespace SubSearchUI.ViewModels
                                     //cancellation.ThrowIfCancellationRequested();
 
                                     // Get the result and process
-                                    // TODO: Add exception handling. Sometimes the request can timeout and this will throw an exception... downloadTask.Status == Faulted
                                     downloadedSubs = downloadTask.Result;
 
                                     // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
