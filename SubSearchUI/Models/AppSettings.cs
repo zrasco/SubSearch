@@ -30,5 +30,6 @@ namespace SubSearchUI
         public List<Plugin> Plugins { get; set; }
         public List<string> RegExTV { get; set; }
         public List<string> RegExTVInferred { get; set; }
+        public List<string> RegExTVSeriesFolder { get; set; }
     }
 }

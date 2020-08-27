@@ -10,11 +10,36 @@ namespace SubSearchUI.Models
 {
     public class TVDirectoryItem : TVItemWithImage
     {
+        public TVDirectoryItem Parent { get; }
 
-        public TVDirectoryItem()
+        public TVDirectoryItem(string fullPath, TVDirectoryItem parent = null)
         {
+            Parent = parent;
+            FullPath = fullPath;
+            ImageSource = "/Images/folder.png";
+
+            if (parent == null)
+                Text = fullPath;
+            else
+                Text = System.IO.Path.GetRelativePath(Parent.FullPath, fullPath);
+
+            // Add items for subdirectories, if any exist
+            var dirList = Directory.GetDirectories(FullPath);
+
+            if (dirList.Length > 0)
+            {
+                SubItems = new ObservableCollection<TVDirectoryItem>();
+
+                // Add the subdirectories
+                foreach (string s in dirList)
+                {
+                    TVDirectoryItem subDirEntry = new TVDirectoryItem(s, this);
+                    SubItems.Add(subDirEntry);
+                }
+            }
 
         }
+        /*
         public static TVDirectoryItem GetDummyItem()
         {
             return new TVDirectoryItem()
@@ -25,6 +50,7 @@ namespace SubSearchUI.Models
                 SubItems = null
             };
         }
+        */
         /// <summary>
         /// The <see cref="FullPath" /> property's name.
         /// </summary>
@@ -79,47 +105,8 @@ namespace SubSearchUI.Models
                 {
                     return;
                 }
-
-                _isNodeExpanded = value;
-
-                SubItems = new ObservableCollection<TVDirectoryItem>();
-
-                if (IsNodeExpanded == true)
-                {
-                    try
-                    {
-                        // Add the subdirectories
-                        foreach (string s in Directory.GetDirectories(FullPath))
-                        {
-                            TVDirectoryItem subDirEntry = new TVDirectoryItem()
-                            {
-                                FullPath = s,
-                                ImageSource = "/Images/folder.png",
-                                Text = System.IO.Path.GetRelativePath(FullPath, s),
-                                SubItems = new ObservableCollection<TVDirectoryItem>()
-                            };
-
-                            subDirEntry.SubItems.Add(GetDummyItem());
-
-                            SubItems.Add(subDirEntry);
-                        }
-
-                        //if (emptyDir == true)
-                        //    IsNodeExpanded = false;
-                    }
-                    catch (Exception)
-                    {
-                        IsNodeExpanded = false;
-
-                        throw;
-                    }
-
-                }
                 else
-                {
-                    SubItems.Add(GetDummyItem());
-                }
-
+                    _isNodeExpanded = value;
 
                 RaisePropertyChanged(IsNodeExpandedPropertyName);
             }

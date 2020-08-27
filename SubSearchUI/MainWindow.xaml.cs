@@ -302,15 +302,7 @@ namespace SubSearchUI
                 rootDirName = System.IO.Path.GetDirectoryName(rootDirectory);
             */
 
-            var rootItem = new TVDirectoryItem()
-            {
-                FullPath = rootDirectory,
-                ImageSource = "/Images/folder.png",
-                Text = rootDirectory,
-                SubItems = new ObservableCollection<TVDirectoryItem>()
-            };
-
-            rootItem.SubItems.Add(TVDirectoryItem.GetDummyItem());
+            var rootItem = new TVDirectoryItem(rootDirectory);
 
             newDirectoryList.Add(rootItem);
 
@@ -453,8 +445,7 @@ namespace SubSearchUI
 
                                 _logger.LogDebug($"Plugin {pluginInfo.Name} initialization scheduled for execution.");
 
-                                // TODO: Init() appears to be running synchronously, even though it's awaitable. I suspect this has to do with the calling thread.
-                                var initTask = pluginStatus.Interface.Init(cQueue);
+                                var initTask = pluginStatus.Interface.InitAsync(cQueue);
 
                                 while (!cQueue.IsEmpty || initTask.Status == TaskStatus.WaitingForActivation || initTask.Status == TaskStatus.Running)
                                 {

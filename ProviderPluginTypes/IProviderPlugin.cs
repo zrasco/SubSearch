@@ -28,15 +28,24 @@ namespace ProviderPluginTypes
     public interface IProviderPlugin
     {
         // Called when the plugin is loaded into the program
-        Task Init(ConcurrentQueue<ProviderSignal> cQueue);
+        Task InitAsync(ConcurrentQueue<ProviderSignal> cQueue);
         // Perform any cleanup here
-        Task Unload(ConcurrentQueue<ProviderSignal> cQueue);
+        Task UnloadAsync(ConcurrentQueue<ProviderSignal> cQueue);
         string Version();
         // Reports the capabilities of the provider (can search by hash, etc...). Use a bitwise OR with the SearchCapabilities above
         SearchCapabilities ProviderCapabilities();
         // Search by file hash
-        Task<IList<DownloadedSubtitle>> SearchSubtitlesByHashAsync(string fileHash, long fileSize, IList<CultureInfo> cultureInfos, ConcurrentQueue<ProviderSignal> cQueue);
+        Task<IList<DownloadedSubtitle>> SearchSubtitlesByHashAsync(string fileHash,
+                                                                    long fileSize,
+                                                                    IList<CultureInfo> cultureInfos,
+                                                                    ConcurrentQueue<ProviderSignal> cQueue);
         // Search by show, season and episode #
-        Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(IList<string> showNameCandidates, int seasonNbr, int episodeNbr, IList<CultureInfo> cultureInfos, ConcurrentQueue<ProviderSignal> cQueue);
+        Task<IList<DownloadedSubtitle>> SearchSubtitlesForTVAsync(IList<string> showNameCandidates,
+                                                                    int seasonNbr,
+                                                                    int episodeNbr,
+                                                                    IList<CultureInfo> cultureInfos,
+                                                                    ConcurrentQueue<ProviderSignal> cQueue);
+        
+        
     }
 }

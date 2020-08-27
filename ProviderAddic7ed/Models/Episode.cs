@@ -2,6 +2,7 @@ using System.Collections.Generic;
 
 namespace Addic7ed.Addic7edApi.Models
 {
+    [System.Serializable]
     public class Episode
     {
         public Episode()

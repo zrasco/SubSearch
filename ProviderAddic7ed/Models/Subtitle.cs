@@ -2,6 +2,7 @@ using System;
 
 namespace Addic7ed.Addic7edApi.Models
 {
+    [System.Serializable]
     public class Subtitle
     {
         public string Version { get; set; }

@@ -109,18 +109,16 @@ namespace SubSearchUI.Services.Concrete
                     "Movies"
                 };
 
-                showNameCandidates[x] = showNameCandidates[x].Trim(charsToTrim);
-
-                // Remove any tags enclosed in () or []
-                if (showNameCandidates[x].Contains("(") && showNameCandidates[x].Contains(")"))
-                    showNameCandidates[x] = RemoveEnclosedText(showNameCandidates[x], "(", ")");
-
-                if (showNameCandidates[x].Contains("[") && showNameCandidates[x].Contains("]"))
-                    showNameCandidates[x] = RemoveEnclosedText(showNameCandidates[x], "[", "]");
-
                 // Remove any of the false positives above
                 if (falsePositives.Contains(showNameCandidates[x]))
                     showNameCandidates[x] = "";
+                else
+                {
+                    // Clean up the folder name
+                    string cleanedUp = showNameCandidates[x];
+                    RemoveTagsAndTrim(ref cleanedUp);
+                    showNameCandidates[x] = cleanedUp;
+                }
             }
 
             // Remove all nulls and empties from step above
@@ -158,39 +156,6 @@ namespace SubSearchUI.Services.Concrete
             return retval;
         }
 
-        private string RemoveEnclosedText(string input, string leftThing, string rightThing, bool trim = true)
-        // Removes all text between two "things" such as () or [], including the things themselves.
-        // Result is trimmed of whitespace
-        // Examples:
-        // RemoveEnclosedText("Hello [world]","[","]") == "Hello"
-        // RemoveEnclosedText("Hello (there) [person]
-        {
-            string retval = input;
-            bool findingNew = true;
-
-            while (findingNew)
-            {
-                int pos1 = retval.IndexOf(leftThing);
-                int pos2 = retval.IndexOf(rightThing);
-
-                if (pos1 != -1 && pos2 != -1 && pos1 < pos2)
-                {
-                    retval = retval.Substring(0, pos1) + retval.Substring(pos2 + 1, retval.Length - pos2 - 1);
-
-                    // Trim extra whitespace
-                    while (retval.Contains("  "))
-                        retval = retval.Replace("  ", " ");
-                }
-                else
-                    findingNew = false;
-            }
-
-            if (trim)
-                retval = retval.Trim();
-            
-            return retval;
-
-        }
         public TVShowValue InfoFromFilebase(string fileBase, string RegExExpression = null)
         // If RegExExpression != null, it will use that instead of the list in appSettings.json
         // Returns a null TVShowValue if unable to parse at least the series, season # and episode #
@@ -276,7 +241,8 @@ namespace SubSearchUI.Services.Concrete
             if (folderNamesArray.Length >= 3)
             {
                 string episode = folderNamesArray[folderNamesArray.Length - 1];
-                bool gotSeason = Int32.TryParse(folderNamesArray[folderNamesArray.Length - 2].Replace("Season", "").Trim(), out int season);
+                //bool gotSeason = Int32.TryParse(folderNamesArray[folderNamesArray.Length - 2].Replace("Season", "").Trim(), out int season);
+                bool gotSeason = TryExtractSeasonNbrFromPath(folderNamesArray[folderNamesArray.Length - 2].Trim(), out int season);
 
                 if (gotSeason)
                 {
@@ -313,6 +279,93 @@ namespace SubSearchUI.Services.Concrete
 
             _logger.LogTrace($"{App.GetCaller()}() exiting");
             return retval;
+        }
+
+        // Helper functions
+        private bool TryExtractSeasonNbrFromPath(string folderName, out int seasonNbr)
+        {
+            _logger.LogTrace($"{App.GetCaller()}() entering");
+
+            bool retval = false;
+
+            seasonNbr = -1;
+
+            // Clean up the folder name first
+            RemoveTagsAndTrim(ref folderName);
+            
+            // Try "...\Season 1\..."
+            //retval = Int32.TryParse(folderName.Replace("Season", "").Trim(), out seasonNbr);
+
+            // Try to extract season # using RegEx in config file
+
+            var expressionList = _appSettings.RegExTVSeriesFolder;
+
+            foreach (string expression in expressionList) if (!retval)
+            {
+                Regex r = new Regex(expression);
+
+                Match m = r.Match(folderName);
+
+                if (m.Success && m.Groups.ContainsKey(SEASON_STR))
+                {
+                    if (Int32.TryParse(m.Groups[SEASON_STR].Value, out seasonNbr))
+                        retval = true;
+                }
+            }
+
+            _logger.LogTrace($"{App.GetCaller()}() exiting");
+
+            return retval;
+        }
+
+        private void RemoveTagsAndTrim(ref string input)
+        {
+            char[] charsToTrim = { ',', '.', ' ', '-' };
+
+            // First trim
+            input = input.Trim(charsToTrim);
+
+            if (input.Contains("(") && input.Contains(")"))
+                input = RemoveEnclosedText(input, "(", ")");
+
+            if (input.Contains("[") && input.Contains("]"))
+                input = RemoveEnclosedText(input, "[", "]");
+
+            // Trim again, just in case
+            input = input.Trim(charsToTrim);
+        }
+        private string RemoveEnclosedText(string input, string leftThing, string rightThing, bool trim = true)
+        // Removes all text between two "things" such as () or [], including the things themselves.
+        // Result is trimmed of whitespace
+        // Examples:
+        // RemoveEnclosedText("Hello [world]","[","]") == "Hello"
+        // RemoveEnclosedText("Hello (there) [person]
+        {
+            string retval = input;
+            bool findingNew = true;
+
+            while (findingNew)
+            {
+                int pos1 = retval.IndexOf(leftThing);
+                int pos2 = retval.IndexOf(rightThing);
+
+                if (pos1 != -1 && pos2 != -1 && pos1 < pos2)
+                {
+                    retval = retval.Substring(0, pos1) + retval.Substring(pos2 + 1, retval.Length - pos2 - 1);
+
+                    // Trim extra whitespace
+                    while (retval.Contains("  "))
+                        retval = retval.Replace("  ", " ");
+                }
+                else
+                    findingNew = false;
+            }
+
+            if (trim)
+                retval = retval.Trim();
+
+            return retval;
+
         }
     }
 }

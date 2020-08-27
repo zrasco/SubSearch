@@ -4,6 +4,7 @@ using ProviderPluginTypes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -33,7 +34,7 @@ namespace ProviderAddic7ed
 
             _logger.LogTrace($"{GetCaller()}() exiting");
         }
-        public async Task Init(ConcurrentQueue<ProviderSignal> cQueue)
+        public async Task InitAsync(ConcurrentQueue<ProviderSignal> cQueue)
         {
             _logger.LogTrace($"{GetCaller()}() entered");
             Stream stream = null;
@@ -62,7 +63,6 @@ namespace ProviderAddic7ed
                 {
                     // Get the list of all TV shows
                     UpdateTaskDisplay(cQueue, .5, $"{SHOWS_CACHE_FILENAME} not found. Downloading show list...");
-                    //Thread.Sleep(100000);
                     _tvShows = await _api.GetShows();
 
                     if (_tvShows.Any())
@@ -95,7 +95,7 @@ namespace ProviderAddic7ed
             _logger.LogTrace($"{GetCaller()}() exiting (normal)");
         }
 
-        public async Task Unload(ConcurrentQueue<ProviderSignal> cQueue)
+        public async Task UnloadAsync(ConcurrentQueue<ProviderSignal> cQueue)
         {
             _logger.LogTrace($"{GetCaller()}() entered");
 
@@ -159,14 +159,47 @@ namespace ProviderAddic7ed
                             _logger.LogDebug($"TV show variation ({x + 1}/{showNameCandidates.Count}) ({showName}) was found in the list of available shows.");
 
                             // Find all subtitles for each episode in the target season
+                            List<Episode> eps = null;
+                            string SEASON_SUBTITLES_FILENAME = $"{showName}.s{seasonNbr}.cache";
+                            IFormatter formatter = new BinaryFormatter();
+                            Stream stream = null;
 
-                            var eps = await _api.GetSeasonSubtitles(myShow.Id, seasonNbr);
-
-                            if (!eps.Any())
+                            if (File.Exists(SEASON_SUBTITLES_FILENAME))
                             {
-                                _logger.LogInformation($"No episodes for season ({seasonNbr}) were available.");
+                                // Load the season info from a file
+                                stream = new FileStream(SEASON_SUBTITLES_FILENAME, FileMode.Open, FileAccess.Read);
+
+                                eps = (List<Episode>)formatter.Deserialize(stream);
+
+                                stream.Close();
+
+                                string infoMsg = $"Season subtitles info read from {SEASON_SUBTITLES_FILENAME}. Downloading...";
+                                _logger.LogDebug(infoMsg);
+                                UpdateTaskDetails(cQueue, infoMsg);
+
                             }
                             else
+                            {
+                                // Download the list of episodes for this season
+                                UpdateTaskDisplay(cQueue, .5, $"{SEASON_SUBTITLES_FILENAME} not found. Downloading show list...");
+                                eps = await _api.GetSeasonSubtitles(myShow.Id, seasonNbr);
+
+                                if (eps.Any())
+                                {
+                                    stream = new FileStream(SEASON_SUBTITLES_FILENAME, FileMode.Create, FileAccess.Write);
+                                    formatter.Serialize(stream, eps);
+                                    stream.Close();
+
+                                    string infoMsg = $"Season subtitles info downloaded and written to {SEASON_SUBTITLES_FILENAME}. ";
+                                    UpdateTaskDetails(cQueue, infoMsg);
+                                }
+                                else
+                                {
+                                    _logger.LogInformation($"No episodes for season ({seasonNbr}) were available.");
+                                }
+                            }
+
+                            if (eps.Any())
                             {
                                 // Find our target episode
                                 var myEp = eps.Where(x => x.Number == episodeNbr).FirstOrDefault();
@@ -202,7 +235,6 @@ namespace ProviderAddic7ed
                                             _logger.LogInformation($"Successfully retrieved subtitles for series ({showName}) season ({seasonNbr}) episode ({episodeNbr}) in {language}");
                                         }
                                     }
-
                                 }
                             }
                         }
@@ -219,7 +251,8 @@ namespace ProviderAddic7ed
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Exception: {GetCaller()}()");
+                // Log the exception as a debug item, as it's presumably logged/handled up the call stack
+                _logger.LogDebug(ex, $"Exception: {GetCaller()}()");
 
                 _logger.LogTrace($"{GetCaller()}() exiting (exception)");
                 throw;

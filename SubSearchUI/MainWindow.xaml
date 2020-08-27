@@ -163,7 +163,7 @@
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
-                                                <TextBlock Text="{Binding Path=DetailsText}" Foreground="{Binding Path=TextColor}"/>
+                                                <TextBlock Text="{Binding Path=DetailsText}" Foreground="{Binding Path=TextColor}" ToolTip="{Binding Path=DetailsText}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>

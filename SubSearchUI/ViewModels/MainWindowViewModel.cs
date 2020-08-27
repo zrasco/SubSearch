@@ -245,68 +245,81 @@ namespace SubSearchUI.ViewModels
                 // Add subtitle download to queue
                 Scheduler.AddItem($"Downloading {parameter.Filename}...", (item, cancellation) =>
                 {
-                    foreach (var pluginStatus in PluginStatusList)
+                    try
                     {
-                        // Cancel if needed
-                        cancellation.ThrowIfCancellationRequested();
-
-                        if (pluginStatus.Status == PluginLoadStatus.Loaded)
+                        foreach (var pluginStatus in PluginStatusList)
                         {
-                            if ((pluginStatus.Interface.ProviderCapabilities() & SearchCapabilities.TV) == SearchCapabilities.TV)
+                            // Cancel if needed
+                            cancellation.ThrowIfCancellationRequested();
+
+                            if (pluginStatus.Status == PluginLoadStatus.Loaded)
                             {
-                                IList<DownloadedSubtitle> downloadedSubs = new List<DownloadedSubtitle>();
-                                ConcurrentQueue<ProviderSignal> cQueue = new ConcurrentQueue<ProviderSignal>();
-
-                                //downloadedSubs = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season.GetValueOrDefault(), fileInfo.EpisodeNbr.GetValueOrDefault(), new List<CultureInfo>() { parameter.CultureInfo }).Result;
-                                var downloadTask = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season.GetValueOrDefault(), fileInfo.EpisodeNbr.GetValueOrDefault(), new List<CultureInfo>() { parameter.CultureInfo }, cQueue);
-
-                                while (!cQueue.IsEmpty || downloadTask.Status == TaskStatus.WaitingForActivation || downloadTask.Status == TaskStatus.Running)
+                                if ((pluginStatus.Interface.ProviderCapabilities() & SearchCapabilities.TV) == SearchCapabilities.TV)
                                 {
-                                    // Check for signals from provider task
-                                    if (cQueue.TryDequeue(out ProviderSignal result) == true)
+                                    IList<DownloadedSubtitle> downloadedSubs = new List<DownloadedSubtitle>();
+                                    ConcurrentQueue<ProviderSignal> cQueue = new ConcurrentQueue<ProviderSignal>();
+
+                                    //downloadedSubs = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season.GetValueOrDefault(), fileInfo.EpisodeNbr.GetValueOrDefault(), new List<CultureInfo>() { parameter.CultureInfo }).Result;
+                                    var downloadTask = pluginStatus.Interface.SearchSubtitlesForTVAsync(fileInfo.Series, fileInfo.Season.GetValueOrDefault(), fileInfo.EpisodeNbr.GetValueOrDefault(), new List<CultureInfo>() { parameter.CultureInfo }, cQueue);
+
+                                    while (!cQueue.IsEmpty || downloadTask.Status == TaskStatus.WaitingForActivation || downloadTask.Status == TaskStatus.Running)
                                     {
-                                        if (result.Type == ProviderSignal.SignalType.ChangePercentage)
-                                            item.ProgressPercentage = result.DoubleValue;
-                                        else if (result.Type == ProviderSignal.SignalType.ChangeDetails)
-                                            item.DetailsText = result.TextValue;
+                                        // Check for signals from provider task
+                                        if (cQueue.TryDequeue(out ProviderSignal result) == true)
+                                        {
+                                            if (result.Type == ProviderSignal.SignalType.ChangePercentage)
+                                                item.ProgressPercentage = result.DoubleValue;
+                                            else if (result.Type == ProviderSignal.SignalType.ChangeDetails)
+                                                item.DetailsText = result.TextValue;
+                                        }
+
+                                        cancellation.ThrowIfCancellationRequested();
+                                        System.Threading.Thread.Sleep(10);
                                     }
 
-                                    cancellation.ThrowIfCancellationRequested();
-                                    System.Threading.Thread.Sleep(10);
-                                }
+                                    // Cancel if needed
+                                    //cancellation.ThrowIfCancellationRequested();
 
-                                // Cancel if needed
-                                //cancellation.ThrowIfCancellationRequested();
+                                    // Get the result and process
+                                    // TODO: Add exception handling. Sometimes the request can timeout and this will throw an exception... downloadTask.Status == Faulted
+                                    downloadedSubs = downloadTask.Result;
 
-                                // Get the result and process
-                                downloadedSubs = downloadTask.Result;
-
-                                // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
-                                if (downloadedSubs.Count > 0)
-                                {
-                                    using (FileStream fs = new FileStream(parameter.FullPath, FileMode.Create))
+                                    // TODO: Decide what to do if multiple subs are downloaded. For now, just pick this one.
+                                    if (downloadedSubs.Count > 0)
                                     {
-                                        downloadedSubs[0].Contents.CopyTo(fs);
-                                        downloadedSubs[0].Contents.Close();
+                                        using (FileStream fs = new FileStream(parameter.FullPath, FileMode.Create))
+                                        {
+                                            downloadedSubs[0].Contents.CopyTo(fs);
+                                            downloadedSubs[0].Contents.Close();
+                                        }
+
+                                        parameter.Exists = true;
+                                        parameter.Parent.RefreshColor();
+
+                                        item.DetailsText = $"Successfully downloaded subtitle to path ({parameter.FullPath})";
+                                        return true;
                                     }
 
-                                    parameter.Exists = true;
-                                    parameter.Parent.RefreshColor();
-
-                                    item.DetailsText = $"Successfully downloaded subtitle to path ({parameter.FullPath})";
-                                    return true;
                                 }
-
                             }
                         }
+
+                        string error = $"Unable to find matching subtitle for ({parameter.Filename})";
+                        _logger.LogError(error);
+                        item.DetailsText = error;
+                        return false;
+                        //throw new Exception("Unable to find matching subtitle");
+                    }
+                    catch (Exception ex)
+                    {
+                        string error = $"Exception finding subtitle for ({parameter.Filename}): {ex.Message}";
+                        _logger.LogError(error);
+                        item.DetailsText = error;
+                        return false;
                     }
 
-                    string error = $"Unable to find matching subtitle for ({parameter.Filename})";
-                    _logger.LogError(error);
-                    item.DetailsText = error;
-                    return false;
-                    //throw new Exception("Unable to find matching subtitle");
-                    
+
+
                 });
             }
             else

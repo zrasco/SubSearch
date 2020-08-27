@@ -31,12 +31,37 @@ namespace Addic7ed.Addic7edApi
         {
             var httpContent = await _httpClient.DownloadSubtitle(addictedShowId, downloadUri);
 
+            // Bugfixes by Zeb Rasco
+            //
+            // 1) Sometimes the Content type is null because the charset is blank as well, so we'll default to "text/srt" in case that happens
+            //
+            // 2) Sometimes ContentDisposition is blank, most likely because you've exceeded your daily download limit.
+            const string DEFAULT_MEDIA_TYPE = "text/srt";
+
             var downloadSubtitleResult = new DownloadSubtitleResult
             {
                 Stream = await httpContent.ReadAsStreamAsync(),
-                Filename = httpContent.Headers.ContentDisposition.FileName.Trim('"'),
-                Mediatype = httpContent.Headers.ContentType.MediaType
             };
+
+            if (httpContent.Headers.ContentType == null)
+                downloadSubtitleResult.Mediatype = DEFAULT_MEDIA_TYPE;
+            else
+                downloadSubtitleResult.Mediatype = httpContent.Headers.ContentType.MediaType;
+
+            if (httpContent.Headers.ContentDisposition == null)
+            {
+                var content = await httpContent.ReadAsStringAsync();
+
+                // TODO: Make this more informative
+                string exMessage = "Unknown error";
+
+                if (content.Contains("Daily Download count exceeded"))
+                    exMessage = "Daily download count exceeded";
+
+                throw new Exception(exMessage);
+            }
+            else
+                downloadSubtitleResult.Filename = httpContent.Headers.ContentDisposition.FileName.Trim('"');
 
             return downloadSubtitleResult;
         }

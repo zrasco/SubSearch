@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Addic7ed.Addic7edApi\Addic7ed.Addic7edApi.csproj" />
+    <ProjectReference Include="..\ProviderAddic7ed\ProviderAddic7ed.csproj" />
   </ItemGroup>
 
 </Project>

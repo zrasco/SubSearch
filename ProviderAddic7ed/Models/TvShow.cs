@@ -1,8 +1,6 @@
-﻿using System;
-
-namespace Addic7ed.Addic7edApi.Models
+﻿namespace Addic7ed.Addic7edApi.Models
 {
-    [Serializable]
+    [System.Serializable]
     public class TvShow
     {
         public int Id { get; set; }
