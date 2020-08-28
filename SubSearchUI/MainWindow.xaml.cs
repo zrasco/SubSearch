@@ -65,15 +65,20 @@ namespace SubSearchUI
             _logger = logger;
             _appSettings = settings.Value;
             _vm = services.GetRequiredService<MainWindowViewModel>();
-            _vm.Scheduler = new Scheduler(QueueItemStatusChangeEventHandler);
+            
+            _vm.Scheduler = services.GetRequiredService<Scheduler>();
+            _vm.Scheduler.SetQueueItemStatusChangeEventHandler(QueueItemStatusChangeEventHandler);
+
+            //_vm.Scheduler = new Scheduler(QueueItemStatusChangeEventHandler);
             //_vm = new MainWindowViewModel(QueueItemStatusChangeEventHandler, filenameProcessor);
             _services = services;
             _vm.PluginStatusList = pluginStatus;
 
+            // Global failsafe for unhandled exceptions
             Application.Current.DispatcherUnhandledException += new DispatcherUnhandledExceptionEventHandler(Current_DispatcherUnhandledException);
 
             // Add test items to queue
-            Random rand = new Random();
+            Random rand = new Random();            
             
             for (int x = 1; x <= 1; x++)
             {
@@ -94,11 +99,10 @@ namespace SubSearchUI
                     return true;
                 });
             }
-
+            
             DataContext = _vm;
 
             RefreshTVFromPath(_appSettings.RootDirectory);
-
         }
 
         private static TreeViewItem FindTviFromObjectRecursive(ItemsControl ic, object o)
@@ -324,8 +328,11 @@ namespace SubSearchUI
                 if (tvi != null)
                     tvi.IsSelected = true;
 
+                /*
                 // Start the background jobs scheduler
                 Dispatcher.InvokeAsync(new Action(BackgroundJobScheduler), DispatcherPriority.ApplicationIdle);
+
+                */
 
                 // Load the plugins
                 LoadPlugins();
@@ -511,7 +518,8 @@ namespace SubSearchUI
 
             _logger.LogTrace($"{App.GetCaller()}() exiting");
         }
-
+        
+        /*
         private async void BackgroundJobScheduler()
         {
             // Trace logging commented out here for the sake of our sanity. Re-enable at your own peril!
@@ -530,6 +538,7 @@ namespace SubSearchUI
 
             //_logger.LogTrace("BackgroundJobScheduler() exiting");
         }
+        */
 
         private void LvFiles_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

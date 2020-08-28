@@ -243,7 +243,7 @@ namespace SubSearchUI.Models
         {
             _cancellationTokenSource = new CancellationTokenSource();
 
-            var retval = Task.Factory.StartNew(() =>
+            var retval = Task.Run(() =>
             {
                 // Get the current thread in case we need to cancel the task
                 try

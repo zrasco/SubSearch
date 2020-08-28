@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.Win32;
-using Microsoft.WindowsAPICodePack.Dialogs;
 using SubSearchUI.Models;
 using SubSearchUI.Services.Abstract;
 using SubSearchUI.ViewModels;
@@ -16,6 +15,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -67,12 +67,20 @@ namespace SubSearchUI.Views
         }
         private void BtnBrowse_Click(object sender, RoutedEventArgs e)
         {
-            CommonOpenFileDialog dlg = new CommonOpenFileDialog() { IsFolderPicker = true };
+            int x = 0;
 
-            if (dlg.ShowDialog(this) == CommonFileDialogResult.Ok)
+            x = x + 1;
+
+            FolderBrowserDialog dlg = new FolderBrowserDialog();
+
+            
+            //CommonOpenFileDialog dlg = new CommonOpenFileDialog() { IsFolderPicker = true };
+
+            if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                _vm.RootDirectory = dlg.FileName;
+                _vm.RootDirectory = dlg.SelectedPath;
             }
+            
         }
 
         private void BtnOK_Click(object sender, RoutedEventArgs e)
@@ -124,5 +132,7 @@ namespace SubSearchUI.Views
                 }
             }         
         }
+
+
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,10 +11,14 @@ namespace SubSearchUI.Models
 {
     public class TVDirectoryItem : TVItemWithImage
     {
+        private readonly ILogger<TVDirectoryItem> _logger;
         public TVDirectoryItem Parent { get; }
 
         public TVDirectoryItem(string fullPath, TVDirectoryItem parent = null)
         {
+            var serviceProvider = (App.Current as App).GetServiceProvider();
+            _logger = serviceProvider.GetRequiredService<ILogger<TVDirectoryItem>>();
+
             Parent = parent;
             FullPath = fullPath;
             ImageSource = "/Images/folder.png";
@@ -24,33 +29,30 @@ namespace SubSearchUI.Models
                 Text = System.IO.Path.GetRelativePath(Parent.FullPath, fullPath);
 
             // Add items for subdirectories, if any exist
-            var dirList = Directory.GetDirectories(FullPath);
-
-            if (dirList.Length > 0)
+            try
             {
-                SubItems = new ObservableCollection<TVDirectoryItem>();
+                var dirList = Directory.GetDirectories(FullPath);
 
-                // Add the subdirectories
-                foreach (string s in dirList)
+                if (dirList.Length > 0)
                 {
-                    TVDirectoryItem subDirEntry = new TVDirectoryItem(s, this);
-                    SubItems.Add(subDirEntry);
+                    SubItems = new ObservableCollection<TVDirectoryItem>();
+
+                    // Add the subdirectories
+                    foreach (string s in dirList)
+                    {
+                        TVDirectoryItem subDirEntry = new TVDirectoryItem(s, this);
+                        SubItems.Add(subDirEntry);
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Unable to process directory ({fullPath}): {ex.Message}");
+            }
+
 
         }
-        /*
-        public static TVDirectoryItem GetDummyItem()
-        {
-            return new TVDirectoryItem()
-            {
-                FullPath = "",
-                ImageSource = "/Images/Folder.png",
-                Text = "",
-                SubItems = null
-            };
-        }
-        */
+
         /// <summary>
         /// The <see cref="FullPath" /> property's name.
         /// </summary>

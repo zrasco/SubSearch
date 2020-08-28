@@ -33,6 +33,10 @@ namespace SubSearchUI
         public IServiceProvider _serviceProvider { get; private set; }
         public IConfigurationRoot _config { get; private set; }
 
+        public IServiceProvider GetServiceProvider()
+        {
+            return _serviceProvider;
+        }
         protected override void OnStartup(StartupEventArgs e)
         {
             var builder = new ConfigurationBuilder()
@@ -67,7 +71,6 @@ namespace SubSearchUI
                 .AddJsonFile("appsettings.json")
                 .Build();
 
-            // TODO: Configure logging level later
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(configuration)
                 .WriteTo.MainWindowLogSink()
@@ -87,6 +90,9 @@ namespace SubSearchUI
 
             // Add viewmodels
             services.AddTransient<MainWindowViewModel>();
+
+            // Add scheduler
+            services.AddSingleton<Scheduler>();
         }
 
         public static string GetCaller([System.Runtime.CompilerServices.CallerMemberName] string memberName = "")
